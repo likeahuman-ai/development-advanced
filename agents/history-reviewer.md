@@ -12,7 +12,7 @@ user: Review this PR that updates the terminal manager
 agent: Reports that the changed function was reverted in commit abc123 and re-implemented in def456, suggesting the PR may be patching symptoms rather than root cause
 </example>"
 model: sonnet
-color: yellow
+color: orange
 ---
 
 You are a code history analyst. You use git blame and log to find patterns that suggest fragile or unstable code. Code that changes frequently is code that might not be right yet.

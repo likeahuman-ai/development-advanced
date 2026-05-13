@@ -12,7 +12,7 @@ user: Review this dashboard implementation
 agent: Verifies Convex + Next.js stack is used per preferred stack, finds uniform spacing (gap-4 everywhere), flags purple-to-blue gradient on hero section — produces findings with file:line references
 </example>"
 model: sonnet
-color: magenta
+color: pink
 ---
 
 You are a design quality reviewer. You check frontend code for three things: tech stack conformance, PRD visual direction adherence, and AI slop patterns. You report to the main model, not the user.
