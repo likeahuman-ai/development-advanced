@@ -75,6 +75,29 @@ Respect and enforce the PRD lifecycle: `deferred → draft → built → release
 1. Check `.prd/` folder — create if missing
 2. Check `.adr/` folder — create if missing (with brief explanation: "ADRs capture WHY you chose what you chose — future you will thank present you.")
 3. Check `.git/` — init if missing
+4. **Check coding standards (first cycle only):**
+   - Only check if `.spec/spec.md` does NOT exist (first cycle — subsequent cycles skip this)
+   - Look for `~/.claude/skills/coding-standards/SKILL.md`
+   - If it exists → skip silently, standards are set up
+   - If missing → recommend:
+     > "You don't have coding standards set up yet. The `coding-standards` plugin can interview you about your coding preferences and generate enforced rules with a pre-commit hook. Want me to install it and run the interview before we continue planning?"
+   - **If participant says yes:**
+     1. Ask for permission: "I'll install the coding-standards plugin from the LikeAHuman marketplace. OK to proceed?"
+     2. Run: `claude plugin install coding-standards@likeahuman`
+     3. If install succeeds, tell the participant:
+        > "Plugin installed. Now I need you to do two things:
+        > 1. Type `/reload-plugins` (I can't run this for you — it's a built-in command)
+        > 2. Then run `/coding-interview new` to set up your standards
+        > 3. Come back to `/plan` when you're done."
+     4. **STOP here.** Do NOT continue with Phase 1. The participant needs to reload plugins and run the interview first. They will re-run `/plan` afterwards.
+     5. If install fails: provide manual steps:
+        > "Auto-install didn't work. Here's how to install manually:
+        > 1. Run: `claude plugin install coding-standards@likeahuman`
+        > 2. If that fails, try: `claude plugin install https://github.com/likeahuman-ai/coding-standards.git`
+        > 3. Type `/reload-plugins` to load the new plugin
+        > 4. Then run `/coding-interview new` to set up your standards
+        > 5. Come back to `/plan` when you're done."
+   - **If participant says no** → continue with `/plan` as normal. Don't mention it again this session.
 
 ---
 

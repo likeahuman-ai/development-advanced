@@ -12,6 +12,10 @@ Use this template when dispatching `code-architect` agents. Launch one per epic/
 > ### Codebase Exploration Findings
 > [Paste relevant findings from the codebase-explorer agents]
 >
+> ### Architectural Decisions (ADRs)
+> [Paste ADR content if `.adr/ADR.md` exists, otherwise omit this section]
+> These are constraints from the planning phase. Your implementation design must respect these decisions. If an edge case conflicts with an ADR, flag it rather than silently contradicting the decision.
+>
 > ### Your Job
 > Produce:
 > - **Files to create/modify** with exact paths

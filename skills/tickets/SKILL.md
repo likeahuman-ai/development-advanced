@@ -43,6 +43,12 @@ You are turning an approved PRD into actionable, AI-ready GitHub Issues. You wor
    - Scope boundaries (what's in, what's out)
    - Success metrics (tickets must cover these)
 
+5. **Read ADRs (if they exist):**
+   - Check for `.adr/ADR.md`. If present, read it.
+   - These are architectural constraints from `/plan` — the reasoning behind decisions in the PRD.
+   - Pass them to `code-architect` agents in Phase 2 so implementation designs respect the "why" behind decisions, not just the "what."
+   - If no `.adr/` directory exists, skip silently.
+
 ---
 
 ## Phase 1: Codebase Re-exploration
