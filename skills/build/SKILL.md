@@ -106,6 +106,7 @@ Before dispatching, enrich the implementer prompt with codebase context:
 2. Read relevant codebase files the implementer will need (patterns, types, adjacent code)
 3. Load the prompt template from `skills/build/references/implementer-prompt.md`
 4. Fill in: ticket content, sequence position, prior ticket titles, and relevant file contents
+5. **Coding standards injection (once per build session):** Check if `~/.claude/skills/coding-standards/SKILL.md` exists. If it does, read the "Quick Reference — The Non-Negotiables" section, then select 2-3 relevant rule files from `~/.claude/skills/coding-standards/rules/` based on the ticket's file areas (e.g., React components → `rules/react-patterns.md` + `rules/component-architecture.md`, Convex → `rules/convex-backend.md`, TypeScript → `rules/typescript-quality.md`). Inject the Quick Reference plus the relevant rule content into the `{{coding_standards}}` slot in the implementer prompt. If no file exists, leave the slot empty. Do this check once at the start of Phase 2, not per-ticket.
 
 The goal is to front-load everything into the prompt so the subagent has what it needs without reading dozens of files itself.
 

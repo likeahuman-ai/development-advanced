@@ -72,7 +72,23 @@ Read the diff and classify each file:
 
 Identify the project platform (e.g., Next.js, VS Code extension, CLI tool) from package.json, file structure, and framework markers. If a known platform is detected, inject the appropriate context into the `{{platform_context}}` slot in the review dispatch prompt (`skills/review/references/review-prompt.md`).
 
-### 3. Build the specialist roster
+### 3. Check for coding standards
+
+Before building the roster, check if the participant has coding standards installed:
+
+1. Check if `~/.claude/skills/coding-standards/SKILL.md` exists.
+2. If it exists, read the "Read when..." table in that file. Map changed file categories to rule files:
+   - TypeScript source → `rules/typescript-quality.md`, `rules/types-and-constants.md`
+   - React/JSX components → `rules/react-patterns.md`, `rules/component-architecture.md`
+   - Tailwind/styling → `rules/tailwind-and-tokens.md`
+   - Convex files → `rules/convex-backend.md`
+   - Node.js backend → `rules/nodejs-backend.md`
+   - State management → `rules/state-management.md`
+   - Any code → `rules/general-quality.md`, `rules/naming-conventions.md`
+3. Read only the matched rule files (2-4 files, not all 14). Store the content for injection into the `standards-reviewer` dispatch prompt.
+4. If no coding standards file exists, skip — do not dispatch `standards-reviewer`.
+
+### 4. Build the specialist roster
 
 Always include:
 - `code-quality-reviewer` (sonnet)
@@ -85,6 +101,7 @@ Conditionally include based on file classification above:
 - `comment-analyzer` (sonnet)
 - `history-reviewer` (sonnet)
 - `security-reviewer` (sonnet) — if security-sensitive file patterns detected
+- `standards-reviewer` (sonnet) — if coding standards exist (Step 3 above found rule files)
 
 ---
 
@@ -109,7 +126,9 @@ You MUST NOT write review findings yourself. All findings come from dispatched s
 
 Load `skills/review/references/review-prompt.md` for the dispatch template. You MUST call the Agent tool for each specialist in the roster. Launch all independent specialists in a **single message with multiple Agent tool calls** for parallel execution.
 
-**Dispatch enrichment:** When dispatching the `security-reviewer`, read `skills/review/references/security-detection-guide.md` and include its content in the Agent prompt alongside the standard review-prompt.md template. This gives the agent the detection heuristics and PII taxonomy it needs. (Same enrichment pattern as the design-reviewer, which gets `design-review-prompt.md` content injected into its dispatch prompt.)
+**Dispatch enrichment:** When dispatching the `security-reviewer`, read `skills/review/references/security-detection-guide.md` and include its content in the Agent prompt alongside the standard review-prompt.md template. This gives the agent the detection heuristics and PII taxonomy it needs.
+
+**Standards enrichment:** When dispatching the `standards-reviewer`, inject the pre-selected coding standards rule content (gathered in Phase 2, Step 3) into the Agent prompt. Do NOT tell the agent to read files — provide the rule content directly. The agent receives concrete rules, not file paths.
 
 For each agent, provide in the Agent prompt:
 - PR context (number, title, description)

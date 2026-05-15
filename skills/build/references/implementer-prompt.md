@@ -15,8 +15,14 @@ Use this template when `/build` dispatches an implementer subagent for a ticket.
 > ### Before You Begin
 > If you have questions about the requirements, constraints, or approach — ask them now before starting work. It's better to clarify upfront than to build the wrong thing.
 >
+> ### Coding Standards
+>
+> {{coding_standards}}
+>
+> If coding standards are provided above, follow them. They reflect the participant's own conventions. If the slot is empty, follow existing codebase patterns only.
+>
 > ### Your Job
-> 1. **Implement** the ticket spec exactly. Follow existing codebase patterns.
+> 1. **Implement** the ticket spec exactly. Follow existing codebase patterns and any coding standards above.
 > 2. **Write tests** if the ticket includes test-related acceptance criteria.
 > 3. **Verify** — run any verification commands from the acceptance criteria (`pnpm test`, `pnpm typecheck`, etc.).
 > 4. **Commit** — granular commits per logical unit. Good commit messages.
