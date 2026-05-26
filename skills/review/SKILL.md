@@ -30,9 +30,16 @@ You are mostly autonomous. No gates — run the full pipeline and present result
 
 Skip the review (tell the user why) if:
 - PR is closed or merged
-- PR is a draft (suggest: "This PR is still a draft. Run `/review` again when it's ready.")
 - PR has 0 changed files
 - PR changes only lock files, generated files, or non-code assets
+
+**Draft PR handling:** If the PR is a draft, this is expected — `/build` creates draft PRs so they can't be merged before review. Convert it to ready:
+
+```bash
+gh pr ready [number]
+```
+
+Tell the user: "Converted PR from draft to ready — reviewing now." Then proceed with the review.
 
 Otherwise, proceed.
 
@@ -310,7 +317,7 @@ git commit -m "docs: capture deferred review findings for next cycle"
 
 ## Phase 5: Report
 
-**Goal:** Comment on the PR and present findings to the user.
+**Goal:** Comment on the PR, update cycle labels, and present findings to the user.
 
 ### 1. Format the PR comment
 
@@ -351,7 +358,15 @@ Confidence threshold: 65/100 user-facing, 80/100 internal
 gh pr comment [number] --body "[comment]"
 ```
 
-### 3. Present to user
+### 3. Update cycle labels
+
+Swap the cycle enforcement label — the review is done, the PR now needs refine:
+
+```bash
+gh pr edit [number] --remove-label "needs-review" --add-label "needs-refine"
+```
+
+### 4. Present to user
 
 Show the user:
 - How many findings each agent produced vs how many survived scoring
@@ -381,7 +396,7 @@ After presenting findings, direct the participant to GitHub and suggest the next
 
 > "I've posted the findings to your pull request — go have a look at the comments: [PR URL].
 >
-> When you're ready to address them, run `/refine` — it'll let you choose which findings to fix and handle them with dedicated agents."
+> When you're ready to address them, run `/refine` — it'll fix the findings and update your system spec."
 
 **Do not offer to fix findings yourself.** The /refine skill handles this with structured subagent dispatch. Do not inline any fixes in this skill.
 
@@ -398,3 +413,4 @@ After presenting findings, direct the participant to GitHub and suggest the next
 - **Cheap where possible** — Haiku for scoring, sonnet/inherit for actual review.
 - **Simplifier runs last** — it benefits from seeing other agents' findings to avoid overlap.
 - **Full SHA in links** — abbreviated SHAs break GitHub links.
+- **Draft-to-ready conversion** — draft PRs from /build are the expected input. Convert them to ready, don't reject them.

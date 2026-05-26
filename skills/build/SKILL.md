@@ -260,24 +260,46 @@ Push the feature branch and create the PR:
 git push -u origin feat/[feature-name]
 ```
 
-Use `gh pr create` with a HEREDOC body. Follow the template from `skills/build/references/pr-template.md`.
+**Draft vs ready — size-based gate:**
+- **>= 20 lines changed:** Create as **draft**. The full multi-agent review must run before this PR is mergeable — GitHub prevents merging draft PRs. Use `gh pr create --draft`.
+- **< 20 lines changed:** Create as **ready** (non-draft). Trivial changes (typo fixes, config tweaks) don't need the full cycle. Note in the summary: "Small change — consider running /review but not blocking merge."
+
+Use `gh pr create` (with `--draft` for >= 20 lines) with a HEREDOC body. Follow the template from `skills/build/references/pr-template.md`.
+
+After creating the PR, apply the `needs-review` label:
+
+```bash
+gh pr edit [number] --add-label "needs-review"
+```
 
 ### 3. Present summary
 
 ```
 ## Built: [Feature Name]
 
-**PR:** [URL]
+**PR:** [URL] (draft — run /review to unlock merge)
 **Tickets closed:** #203, #204, #205
 **Lines changed:** [N]
 **Waves:** [W] waves, [N] tickets total
   Wave 1: #203, #204 (parallel)
   Wave 2: #205 (sequential — single ticket)
 
-Suggest running review next — the full multi-agent PR review will catch anything the lightweight in-build reviews missed.
+This PR is a draft — it cannot be merged until /review converts it to ready.
+Run /review next to unlock the PR and get the full multi-agent review.
 ```
 
-If stacked PRs were created, list all PR URLs with their wave groupings.
+For small (< 20 line) PRs created as ready:
+
+```
+## Built: [Feature Name]
+
+**PR:** [URL]
+**Lines changed:** [N]
+
+Small change — consider running /review but not blocking merge.
+```
+
+If stacked PRs were created, list all PR URLs with their wave groupings. Apply `needs-review` to each.
 
 ### 4. Close build-order issue
 

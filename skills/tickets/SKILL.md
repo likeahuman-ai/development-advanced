@@ -118,6 +118,7 @@ Before creating issues, ensure the required labels exist. Check with `gh label l
 **Type:** `bug`, `refactor`, `docs`
 **Complexity:** `S`, `M`, `L`
 **Workflow:** `build-order`
+**Cycle enforcement:** `needs-review`, `needs-refine`, `cycle-complete`
 
 ### Create issues
 

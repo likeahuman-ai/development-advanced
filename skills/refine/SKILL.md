@@ -24,7 +24,9 @@ Read findings from GitHub, let user choose which to fix, dispatch implementer su
 - Otherwise, detect current branch PR: `gh pr view --json number,title,url`
 - If no PR: "No PR found. Specify a PR number or URL."
 
-### 2. Read review comments
+### 2. Check for review completion
+
+Before reading findings, verify that `/review` has actually run on this PR. The review phase posts a comment starting with `### Code Review` and swaps the PR label from `needs-review` to `needs-refine`.
 
 ```bash
 gh pr view [number] --json comments --jq '.comments[].body'
@@ -32,10 +34,11 @@ gh pr view [number] --json comments --jq '.comments[].body'
 
 Parse for structured /review findings using the format in `${CLAUDE_PLUGIN_ROOT}/skills/refine/references/finding-format.md`. Look for the most recent comment matching the format (starts with `### Code Review`).
 
+**If no `### Code Review` comment exists on the PR:** This PR hasn't been through `/review` yet. Tell the user: "This PR hasn't been reviewed yet. Run `/review` first — it runs the specialist agents and posts findings to the PR. Then come back to `/refine` to fix them and update the spec." Do not proceed.
+
 ### 3. Handle edge cases
 
-- **No review comments found:** "No review findings on this PR. Nothing to fix — skipping to spec update."
-- **Only "No issues found" comment:** "Review was clean. Nothing to fix — skipping to spec update."
+- **Review comment says "No issues found":** "Review was clean. Nothing to fix — skipping to spec update."
 - **Comments exist but no structured findings:** "I found comments but they don't match the /review format. Want me to read them and address manually, or skip to spec update?"
 
 If no findings to fix, skip directly to Phase 2 (spec update).
@@ -152,7 +155,17 @@ git push
 
 ---
 
-## Phase 3: Summary
+## Phase 3: Close Cycle
+
+### 1. Update cycle label
+
+Mark the PR as cycle-complete — all phases have run:
+
+```bash
+gh pr edit [number] --remove-label "needs-refine" --add-label "cycle-complete"
+```
+
+### 2. Present summary
 
 ```
 ## Cycle Complete: PR #[number]
@@ -160,6 +173,7 @@ git push
 **Fixes:** [N] applied, [N] skipped, [N] blocked
 **Spec:** [created | updated] — .spec/spec.md
 
+The full cycle ran: /plan → /tickets → /build → /review → /refine.
 Next cycle: run `/plan` to start planning the next feature.
 ```
 
