@@ -10,7 +10,7 @@ Use this template when `/build` dispatches an implementer subagent for a ticket.
 > [Paste full ticket body — objective, context, requirements, acceptance criteria, constraints, dependencies]
 >
 > ### Context
-> This is ticket [N] of [TOTAL] in the build sequence. Previous tickets already completed: [list titles]. The codebase reflects all prior work.
+> This is Wave [W] of [TOTAL_WAVES]. You are implementing ticket [M] of [TOTAL_IN_WAVE] in this wave. All prior waves are committed and visible in the working tree. Do NOT assume other tickets in this wave are complete — they may be executing in parallel. Prior waves completed: [list wave summaries with ticket titles].
 >
 > ### Before You Begin
 > If you have questions about the requirements, constraints, or approach — ask them now before starting work. It's better to clarify upfront than to build the wrong thing.

@@ -1,12 +1,12 @@
 ---
 name: tickets
-description: "Turn an approved PRD into AI-ready GitHub Issues with implementation detail. Use when participant has an approved PRD, says 'break this down', 'create issues', 'make tickets', 'turn this into tasks', or has a completed PRD that needs implementation planning."
+description: "Turn an approved PRD into AI-ready GitHub Issues with implementation detail and parallel wave analysis. Use when participant has an approved PRD, says 'break this down', 'create issues', 'make tickets', 'turn this into tasks', or has a completed PRD that needs implementation planning."
 argument-hint: "Path to PRD (optional — auto-detects most recent)"
 ---
 
 # /tickets — PRD to GitHub Issues
 
-You are turning an approved PRD into actionable, AI-ready GitHub Issues. You work through six phases: prerequisites, codebase re-exploration, architecture & decomposition, issue creation, build ordering, and PRD status update. You are mostly autonomous — one approval gate before creating issues.
+You are turning an approved PRD into actionable, AI-ready GitHub Issues. You work through six phases: prerequisites, codebase re-exploration, architecture & decomposition, issue creation, build ordering with wave analysis, and PRD status update. You are mostly autonomous — one approval gate before creating issues.
 
 **Initial request:** $ARGUMENTS
 
@@ -153,9 +153,9 @@ After all issues are created, present a grouped summary with URLs:
 
 ---
 
-## Phase 4: Build Order
+## Phase 4: Build Order & Wave Analysis
 
-**Goal:** Produce a build-order issue so /build knows the implementation sequence.
+**Goal:** Produce a build-order issue so /build knows the implementation sequence and which tickets can execute in parallel.
 
 Using the code-architect findings (file paths, creates/consumes, dependencies, complexity) and the codebase context from Phase 1:
 
@@ -206,7 +206,36 @@ Using the code-architect findings (file paths, creates/consumes, dependencies, c
 
    - Pin the issue: `gh issue pin [number]`
 
-No additional user gate — the user already approved the breakdown in Phase 2. The build order is a deterministic consequence of that breakdown.
+5. **Wave analysis.** Using the dependency graph from step 1, group tickets into parallel execution waves. The goal is to identify which tickets can be implemented simultaneously because they have no HARD dependencies between them and touch different files.
+
+   Wave computation — work through the dependency graph level by level:
+   - **Wave 1:** All tickets with zero HARD incoming dependencies. These have no blockers and can all execute in parallel.
+   - Remove Wave 1 tickets from the graph. **Wave 2:** All tickets that now have zero remaining HARD incoming dependencies — their blockers were all in Wave 1.
+   - Continue removing completed waves and collecting newly unblocked tickets until every ticket is assigned to a wave.
+   - If tickets remain but none have zero incoming dependencies, the HARD dependency declarations contain a circular reference. Flag this to the user — they need to break the cycle by reclassifying one HARD dependency as SOFT.
+
+   SOFT dependencies do not create ordering constraints. Two tickets connected only by a SOFT dependency can appear in the same wave. Within each wave, tickets are unordered — /build dispatches them all in parallel.
+
+   Append a `## Parallel Waves` section to the build-order issue body, after `## Flags`:
+
+   ```
+   ## Parallel Waves
+
+   Wave 1: #[number], #[number], #[number]
+     No HARD dependencies between them. Execute in parallel.
+
+   Wave 2: #[number], #[number]
+     Depends on Wave 1 completing. Execute in parallel.
+
+   Wave 3: #[number]
+     Depends on Wave 2 completing.
+
+   Parallelism: [X] of [Y] tickets can run in parallel ([Z]%)
+   ```
+
+   The `## Build Sequence` section remains as-is — it serves as the sequential fallback for the fundamental plugin's `/build`, which does not read the Parallel Waves section.
+
+No additional user gate — the user already approved the breakdown in Phase 2. The build order and wave analysis are a deterministic consequence of that breakdown.
 
 **Dependency strength:**
 - **HARD** — ticket B cannot compile/run without ticket A's output. Must be sequential.
@@ -228,3 +257,4 @@ After all issues are created and the build-order issue is pinned, update the PRD
 - **Acceptance criteria are testable**, not subjective.
 - **Dependencies are explicit** — blocked-by and blocks references using issue numbers.
 - **Complexity is AI resource cost** (S/M/L), never time estimates.
+- **Wave analysis enables parallel execution** — tickets in the same wave have no HARD dependencies between them and can be implemented simultaneously by /build.
