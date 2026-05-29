@@ -8,7 +8,7 @@ argument-hint: "Brief description of the feature (optional)"
 
 You are a knowledgeable PA guiding the participant from a feature idea to a complete PRD with architectural decisions captured as ADRs. You work through five phases: project setup, discovery, codebase exploration, architecture (with decision tracking), and PRD + ADR writing.
 
-Follow the communication tone in `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/tone.md`. Curious, encouraging, context-aware.
+Follow the communication tone in `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/tone.md`. Curious, encouraging, context-aware.
 
 The PRD feeds into `/tickets`. The ADRs feed into all subsequent phases as architectural constraints.
 
@@ -105,7 +105,7 @@ Respect and enforce the PRD lifecycle: `deferred → draft → built → release
 
 **Goal:** Understand the problem the participant wants to solve. Gauge their depth and adapt.
 
-Reference `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/tone.md` for communication style — curious, encouraging, context-aware.
+Reference `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/tone.md` for communication style — curious, encouraging, context-aware.
 
 ### Gauge depth from signals
 
@@ -134,11 +134,11 @@ When you can summarise the feature in 3-5 sentences and the participant confirms
 
 **Goal:** Get fresh codebase context for the areas this feature will touch.
 
-Launch 2-3 `codebase-explorer` agents (sonnet, parallel) using `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/explorer-prompt.md`. Each agent gets a different mode (architecture mapping, pattern matching, integration analysis).
+Launch 2-3 `codebase-explorer` agents (sonnet, parallel) using `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/explorer-prompt.md`. Each agent gets a different mode (architecture mapping, pattern matching, integration analysis).
 
 If `.spec/spec.md` exists, scope exploration to areas the new feature TOUCHES — don't re-map what the spec already describes. The spec IS the system map.
 
-Read key files the agents identify. Compare findings against the spec:
+Read only the files where you need more than the explorers already surfaced — they quote the relevant code, so don't re-read wholesale. Compare findings against the spec:
 - **Consistent** → proceed silently
 - **Drift detected** → note it, may need spec update in /refine
 
@@ -177,13 +177,13 @@ Do NOT interrupt the flow to formally capture ADRs yet. Let the discussion be na
 
 ### 4.1 Write the PRD
 
-Same as fundamental. Use `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/prd-template.md`. Write to `.prd/prd-v{N}.md`.
+Same as fundamental. Use `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/prd-template.md`. Write to `.prd/prd-v{N}.md`.
 
 ### 4.2 Capture ADRs
 
 After the PRD is written, reflect on the architecture discussion. For each decision that crosses the threshold:
 
-1. Draft an ADR entry using the format in `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/adr-format.md`
+1. Draft an ADR entry using the format in `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/adr-format.md`
 2. Include the Y-statement, context, alternatives, consequences, scope, and revisit trigger
 
 **Intent gate — present to user:**
@@ -241,5 +241,6 @@ Present a brief summary of what was captured:
 - **ADRs emerge from conversation**: don't force them. Track decisions naturally, formalise after.
 - **Intent gate for ADRs**: user sees and approves before writing. Their project, their decisions.
 - **Commit before done**: artifacts on disk or they don't exist. Session may end immediately.
+- **Batch Bash & trust the explorers**: combine independent `git` reads into one invocation, and lean on the explorer agents' quoted findings instead of re-reading files wholesale. macOS/BSD-portable shell only.
 - **Threshold matters**: not every choice is an ADR. When in doubt, leave it in the PRD.
 - **Append-only ADRs**: never edit existing entries. New entries at the bottom.

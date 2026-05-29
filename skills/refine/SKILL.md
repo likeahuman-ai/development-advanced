@@ -187,4 +187,5 @@ Next cycle: run `/plan` to start planning the next feature.
 - **Diff-driven updates** — don't re-describe the whole system. Only update what changed.
 - **Drift detection** — the spec-writer compares its sections against the filesystem. Catches changes made outside the plugin flow.
 - **Commit before done** — both fixes and spec must be on disk before signalling completion.
+- **Batch Bash** — combine independent `git`/`gh` reads into one invocation; keep mutating calls (`git commit`/`push`, `gh pr edit`) sequential. macOS/BSD-portable shell only.
 - **User controls both gates** — which findings to fix, and whether the spec looks right.

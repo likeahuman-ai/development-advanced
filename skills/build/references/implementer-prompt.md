@@ -24,7 +24,7 @@ Use this template when `/build` dispatches an implementer subagent for a ticket.
 > ### Your Job
 > 1. **Implement** the ticket spec exactly. Follow existing codebase patterns and any coding standards above.
 > 2. **Write tests** if the ticket includes test-related acceptance criteria.
-> 3. **Verify** — run any verification commands from the acceptance criteria (`pnpm test`, `pnpm typecheck`, etc.).
+> 3. **Verify** — run the ticket's verification commands **scoped to the package you changed** (e.g. `pnpm --filter <package> test`, `pnpm --filter <package> typecheck`, or `pnpm --filter <package> exec tsc --noEmit`). Do NOT run workspace-wide checks: in a parallel wave, sibling tickets are mutating other packages at the same time, so a root-level `pnpm test`/`typecheck` would be both slow and unreliable. The orchestrator runs one full-workspace verification at the wave boundary.
 > 4. **Commit** — granular commits per logical unit. Good commit messages.
 >    - If a commit fails (pre-commit hook, lint, formatting), fix the issue and retry ONCE. If the second commit also fails, report BLOCKED with the exact error. Do not retry further.
 > 5. **Self-review** — before reporting, review your own work:

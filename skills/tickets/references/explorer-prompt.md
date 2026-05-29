@@ -4,15 +4,15 @@ Use this template when dispatching `codebase-explorer` agents. Launch 2-3 in par
 
 ## Mode 1: Architecture Mapping
 
-> Map the architecture of the workshop-extension: module structure, activation flow, key abstractions, how components communicate. Report file paths for everything you read.
+> Map the architecture of the project: module structure, startup/initialisation flow, key abstractions, how components communicate. Report file paths for everything you read.
 
 ## Mode 2: Pattern Matching
 
-> Find features similar to [FEATURE] in the workshop-extension. Document coding conventions, file organization patterns, testing patterns, and UI patterns. Report file paths.
+> Find features similar to [FEATURE] in the project. Document coding conventions, file organization patterns, testing patterns, and UI/interface patterns. Report file paths.
 
 ## Mode 3: Integration Analysis
 
-> Analyze where [FEATURE] would integrate into the workshop-extension. What existing modules does it touch? What are the constraints? What dependencies exist? What could break? Report file paths.
+> Analyze where [FEATURE] would integrate into the project. What existing modules does it touch? What are the constraints? What dependencies exist? What could break? Report file paths.
 
 ## Usage
 

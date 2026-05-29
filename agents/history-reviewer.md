@@ -29,6 +29,8 @@ For files modified in the PR, check git history on the changed lines and review 
 
 ## How to Analyze
 
+**Batch your shell calls.** The git and gh queries below are independent reads — issue them in as few Bash invocations as possible (chain with `;`, separate output with `echo "=== label ==="` headers) rather than one call per file or per PR. Each separate Bash call is a round-trip with shell-spawn overhead. Use only macOS/BSD-portable commands — no GNU-only flags (`find -printf`, `grep -P`, `sed -i` without a backup suffix); participants are often on macOS.
+
 ### 1. Identify changed files and line ranges
 Read the PR diff to know exactly which files and lines changed.
 
@@ -54,22 +56,24 @@ Look for:
 
 ### 4. Check previous PR comments
 
-For each modified file, find closed PRs that touched it. Fetch recent closed PRs and filter by changed files:
+For each modified file, find closed PRs that touched it. Fetch recent closed PRs **with their changed files in a single call** — `gh pr list --json` returns the `files` field, so there is no need for a per-PR `gh pr view` loop:
 
 ```bash
-# List recent closed PRs (gh resolves owner/repo from the local git remote)
-gh pr list --state closed --limit 10 --json number,title
-# Then for each candidate, check if it touched the same file:
-gh pr view [number] --json files --jq '.files[].path'
-# Keep only PRs that include the modified file (limit to 3 matches)
+# One call: recent closed PRs AND the files each one touched.
+# (gh resolves owner/repo from the local git remote.)
+gh pr list --state closed --limit 30 --json number,title,files
 ```
 
-Once you have matching PR numbers, read their review comments:
+Filter that result yourself: keep PRs whose `files[].path` includes a file the current PR modifies, then take the 3 most recent matches. Because this is one call regardless of how many PRs you scan, prefer a wider `--limit` (20-30) — more history context, no extra round-trips.
+
+Once you have the matching PR numbers (at most 3), read their review comments. Batch them into a single shell invocation rather than one call per PR:
 
 ```bash
-gh pr view [number] --json comments --jq '.comments[].body'
-# Or for inline review comments:
-gh api repos/{owner}/{repo}/pulls/[number]/comments --jq '.[] | {path, body, created_at}'
+for n in [match1] [match2] [match3]; do
+  echo "=== PR #$n ==="
+  gh pr view "$n" --json comments --jq '.comments[].body'
+  gh api "repos/{owner}/{repo}/pulls/$n/comments" --jq '.[] | {path, body, created_at}'
+done
 ```
 
 Look for:

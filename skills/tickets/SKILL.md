@@ -59,7 +59,7 @@ You are turning an approved PRD into actionable, AI-ready GitHub Issues. You wor
 
 1. Launch 2-3 `codebase-explorer` agents (sonnet, parallel). Use the prompt template from `skills/tickets/references/explorer-prompt.md` — focus agents on areas the PRD touches.
 
-2. Read key files the agents identified.
+2. Read only the files where you need more than the explorers already surfaced — the explorers quote the relevant code, so don't re-read wholesale.
 3. Compare exploration findings against the PRD's architecture section:
    - **Consistent** → proceed silently.
    - **Contradiction** → flag to user. The PRD has priority unless the code reveals an anti-pattern the PRD didn't account for.
@@ -110,7 +110,7 @@ Check `git remote -v` to get the GitHub repository. Use the `gh` CLI for all Git
 
 ### Ensure labels exist
 
-Before creating issues, ensure the required labels exist. Check with `gh label list` and create any missing ones:
+Before creating issues, ensure the required labels exist. `gh label create --force` creates a missing label and leaves an existing one intact, so create the whole set in **one** Bash invocation (a loop over the names) rather than `gh label list` followed by a separate create per label:
 
 **Hierarchy:** `epic:{name}`, `feature:{name}`
 **Priority:** `blocker`, `important`, `nice-to-have`, `low`
@@ -119,6 +119,15 @@ Before creating issues, ensure the required labels exist. Check with `gh label l
 **Complexity:** `S`, `M`, `L`
 **Workflow:** `build-order`
 **Cycle enforcement:** `needs-review`, `needs-refine`, `cycle-complete`
+
+```bash
+for name in blocker important nice-to-have low \
+            v1 bug refactor docs S M L \
+            build-order needs-review needs-refine cycle-complete; do
+  gh label create "$name" --force >/dev/null 2>&1 || true
+done
+# Add the epic:NAME / feature:NAME and any extra version labels to the loop, using the actual names from your breakdown.
+```
 
 ### Create issues
 
@@ -134,6 +143,19 @@ For each ticket in the approved breakdown:
 5. Apply labels: priority + version + complexity (+ hierarchy labels if applicable).
 
 Use `gh issue create` with `--title`, `--body`, and `--label` flags. Use HEREDOCs for the body.
+
+**Batch the creates.** Run each hierarchy level inside a single Bash invocation rather than one tool-call per issue. Keep the `gh issue create` calls **sequential within the shell** (concurrent issue creation can trip GitHub's secondary rate limit) and capture the numbers you need for cross-references into shell variables:
+
+```bash
+# Level 1: epics — capture each number for features to reference
+epic_auth=$(gh issue create --title "..." --body "..." --label "epic:auth,v1" | grep -oE '[0-9]+' | tail -1)
+# Level 2: features — reference the epic, capture for tasks
+feat_login=$(gh issue create --title "..." --body "Part of #$epic_auth" --label "feature:login,v1" | grep -oE '[0-9]+' | tail -1)
+# Level 3: tasks — reference the feature
+gh issue create --title "..." --body "Blocked by #$feat_login" --label "S,blocker,v1"
+```
+
+This turns N model round-trips into one per level. `gh issue create` prints the new issue URL; `grep -oE '[0-9]+' | tail -1` takes the trailing issue number portably (survives a trailing slash or stray whitespace). If any `epic_*`/`feat_*` variable comes back empty (e.g. `gh` failed or prompted), STOP and report — do not create child issues with empty parent references.
 
 ### Present summary
 
@@ -258,4 +280,5 @@ After all issues are created and the build-order issue is pinned, update the PRD
 - **Acceptance criteria are testable**, not subjective.
 - **Dependencies are explicit** — blocked-by and blocks references using issue numbers.
 - **Complexity is AI resource cost** (S/M/L), never time estimates.
+- **Batch Bash** — create labels in one looped invocation and issues sequentially-within-one-invocation per hierarchy level; never one tool-call per label or per issue. Reuse the PRD/ADR content you already read instead of re-querying. macOS/BSD-portable shell only.
 - **Wave analysis enables parallel execution** — tickets in the same wave have no HARD dependencies between them and can be implemented simultaneously by /build.

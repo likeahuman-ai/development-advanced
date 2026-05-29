@@ -25,7 +25,7 @@ Determine the GitHub repository from `git remote -v`. Use the `gh` CLI for all G
 Based on `$ARGUMENTS`:
 - **Version label** (e.g. "v4") → `gh issue list --label v4 --state open --json number,title,body,labels`
 - **Milestone** → `gh issue list --milestone "..." --state open --json number,title,body,labels`
-- **Issue numbers** (e.g. "#203 #204 #205") → fetch each with `gh issue view`
+- **Issue numbers** (e.g. "#203 #204 #205") → fetch each with `gh issue view [number] --json number,title,body,labels`, batched into a single Bash invocation
 - **Empty** → ask the user what to build
 
 ### 2. Look for a build-order issue
@@ -132,7 +132,7 @@ Compare these specific paths between all pairs of tickets in the wave. A match m
 
 For each ticket in the wave, prepare the implementer prompt:
 
-1. Read the full ticket content from GitHub
+1. Use the full ticket body already fetched in Phase 1 (the `gh issue list` / `gh issue view --json ...,body,...` payload). Do NOT re-fetch it from GitHub — you already have it. (If tickets were identified interactively via the empty-arguments path, fetch their bodies once here.)
 2. Read relevant codebase files the implementer will need (patterns, types, adjacent code)
 3. Load the prompt template from `skills/build/references/implementer-prompt.md`
 4. Fill in: ticket content, wave context (wave position, prior wave summaries), and relevant file contents
@@ -190,6 +190,24 @@ Wait for ALL implementers in the wave to return before proceeding. Then assess e
 Before proceeding to spec review, verify that all implementers' commits landed successfully. Multiple agents committing to the same branch can encounter git index lock contention — git usually handles this gracefully, but verify to be safe.
 
 Run `git log --oneline` and confirm that commits from all successfully completed tickets in this wave are present. If any expected commits are missing, flag the issue to the user before proceeding.
+
+### Step 4.6: Full-workspace verification
+
+Implementers verify only their own package (parallel-safe, fast — see the implementer prompt). Cross-package breakage — a change in package A that breaks package B — is caught here, once, after the wave's commits have landed and the tree has settled.
+
+Decide the command yourself first (you have the codebase context; the cold-start agent does not): always `pnpm typecheck && pnpm build`; append `&& pnpm test` only if the suite is known-fast (few packages, or you observed fast runs in earlier waves). Then dispatch a single verification subagent via the Agent tool — the orchestrator must not run project commands itself:
+
+```
+Agent tool call:
+  description: "Verify workspace after Wave [N]"
+  model: "sonnet"
+  prompt: "Run exactly this at the repo root: `<the command you chose>`. Report PASS, or FAIL with the exact failing package, command, and error output. Do not fix anything — only report."
+```
+
+- **PASS** → proceed to spec review.
+- **FAIL** → this is a real integration break (the whole workspace assembled), not a parallel-execution artefact. Re-dispatch the implementer(s) for the package(s) at fault with the error output (same dispatch as Step 3), wait for their commits to land (re-run the Step 4.5 `git log` check), then re-run **this** step. Max 2 re-dispatches here; if it still fails, escalate to the user. Only proceed to Step 5 once this verification PASSes. (This is its own loop — separate from the spec-review fix loop in Step 6.)
+
+This runs once per wave, not once per ticket — one full-workspace build per wave, and reliable because the tree is no longer being mutated.
 
 ### Step 5: Dispatch spec-reviewers in parallel
 
@@ -328,6 +346,7 @@ If no build-order issue was used (fallback sequencing), skip this step.
 - **Safety net before speed** — always check for file path overlap before dispatching a wave. False negatives (missed overlaps that cause conflicts) are worse than false positives (unnecessary sequential fallback).
 - **Fresh context per implementer** — each subagent gets a clean context window via the Agent tool. The orchestrator ensures the working tree is clean between waves.
 - **Prompt enrichment over file reading** — front-load codebase context into the Agent prompt. The subagent should rarely need to explore the codebase itself.
+- **Batch Bash** — group the orchestrator's `git`/`gh` calls: combine independent reads into one invocation, and reuse data already fetched (ticket bodies from Phase 1) instead of re-querying. Keep mutating calls (`gh issue close`, `gh pr create`) sequential to respect GitHub's secondary rate limit. macOS/BSD-portable shell only.
 - **Spec compliance between waves** — catch missing requirements before the next wave builds on top. The full quality review happens against the PR.
 - **Autonomous between waves** — don't ask the user between every wave. Only pause for blockers or escalations.
 - **Escalate, don't guess** — if an implementer is stuck, escalate rather than proceeding with uncertainty.
