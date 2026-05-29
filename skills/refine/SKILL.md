@@ -1,6 +1,6 @@
 ---
 name: refine
-description: "Fix review findings and update the system spec (.spec/spec.md). Use when participant has review comments on a PR, says 'fix these', 'address the review', 'refine my code', 'update the spec', 'sync the spec', 'close out this cycle', or wants to finalize work after /pr-review."
+description: "Fix review findings and update the system spec (.spec/spec.md). Use when participant has review comments on a PR, says 'fix these', 'address the review', 'refine my code', 'update the spec', 'sync the spec', 'close out this cycle', or wants to finalize work after /review."
 argument-hint: "PR number or URL (optional — auto-detects current branch PR)"
 ---
 
@@ -26,20 +26,20 @@ Read findings from GitHub, let user choose which to fix, dispatch implementer su
 
 ### 2. Check for review completion
 
-Before reading findings, verify that `/pr-review` has actually run on this PR. The review phase posts a comment starting with `### Code Review` and swaps the PR label from `needs-review` to `needs-refine`.
+Before reading findings, verify that `/review` has actually run on this PR. The review phase posts a comment starting with `### Code Review` and swaps the PR label from `needs-review` to `needs-refine`.
 
 ```bash
 gh pr view [number] --json comments --jq '.comments[].body'
 ```
 
-Parse for structured /pr-review findings using the format in `${CLAUDE_PLUGIN_ROOT}/skills/refine/references/finding-format.md`. Look for the most recent comment matching the format (starts with `### Code Review`).
+Parse for structured /review findings using the format in `${CLAUDE_PLUGIN_ROOT}/skills/refine/references/finding-format.md`. Look for the most recent comment matching the format (starts with `### Code Review`).
 
-**If no `### Code Review` comment exists on the PR:** This PR hasn't been through `/pr-review` yet. Tell the user: "This PR hasn't been reviewed yet. Run `/pr-review` first — it runs the specialist agents and posts findings to the PR. Then come back to `/refine` to fix them and update the spec." Do not proceed.
+**If no `### Code Review` comment exists on the PR:** This PR hasn't been through `/review` yet. Tell the user: "This PR hasn't been reviewed yet. Run `/review` first — it runs the specialist agents and posts findings to the PR. Then come back to `/refine` to fix them and update the spec." Do not proceed.
 
 ### 3. Handle edge cases
 
 - **Review comment says "No issues found":** "Review was clean. Nothing to fix — skipping to spec update."
-- **Comments exist but no structured findings:** "I found comments but they don't match the /pr-review format. Want me to read them and address manually, or skip to spec update?"
+- **Comments exist but no structured findings:** "I found comments but they don't match the /review format. Want me to read them and address manually, or skip to spec update?"
 
 If no findings to fix, skip directly to Phase 2 (spec update).
 
@@ -106,7 +106,7 @@ The system has never been documented. Full exploration needed.
    - Read `.adr/ADR.md` (decisions that shape the design)
    - Read `package.json` (dependencies = stack)
 
-3. **Dispatch spec-writer agent** (inherit) with:
+3. **Dispatch spec-writer agent** (sonnet) with:
    - Explorer results
    - PRD content
    - ADR content
@@ -125,7 +125,7 @@ The spec exists. Use the PR diff to scope what changed.
    - Read `package.json` (dependency check)
    - Read `.adr/ADR.md` if it exists (any new decisions this cycle — skip if no ADR file)
 
-2. **Dispatch spec-writer agent** (inherit) with:
+2. **Dispatch spec-writer agent** (sonnet) with:
    - Existing spec
    - PR diff
    - Full touched files
@@ -173,8 +173,8 @@ gh pr edit [number] --remove-label "needs-refine" --add-label "cycle-complete"
 **Fixes:** [N] applied, [N] skipped, [N] blocked
 **Spec:** [created | updated] — .spec/spec.md
 
-The full cycle ran: /prd → /tickets → /build → /pr-review → /refine.
-Next cycle: run `/prd` to start planning the next feature.
+The full cycle ran: /plan → /tickets → /build → /review → /refine.
+Next cycle: run `/plan` to start planning the next feature.
 ```
 
 ---

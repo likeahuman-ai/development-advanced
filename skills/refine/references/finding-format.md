@@ -1,6 +1,6 @@
 # Review Finding Format
 
-The `/pr-review` skill posts findings as a top-level PR comment via `gh pr comment`. This is the format to parse:
+The `/review` skill posts findings as a top-level PR comment via `gh pr comment`. This is the format to parse:
 
 ## Example Review Comment
 

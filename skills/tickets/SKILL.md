@@ -45,7 +45,7 @@ You are turning an approved PRD into actionable, AI-ready GitHub Issues. You wor
 
 5. **Read ADRs (if they exist):**
    - Check for `.adr/ADR.md`. If present, read it.
-   - These are architectural constraints from `/prd` — the reasoning behind decisions in the PRD.
+   - These are architectural constraints from `/plan` — the reasoning behind decisions in the PRD.
    - Pass them to `code-architect` agents in Phase 2 so implementation designs respect the "why" behind decisions, not just the "what."
    - If no `.adr/` directory exists, skip silently.
 

@@ -1,12 +1,12 @@
 ---
-name: pr-review
+name: review
 description: "Review a PR with specialist agents and confidence scoring — surfaces only high-confidence findings. Use when participant has a PR ready, says 'review my code', 'check this PR', 'is this ready', 'code review', or has an open pull request that needs specialist review."
 argument-hint: "PR number or URL (optional — auto-detects current branch PR)"
 ---
 
-# /pr-review — PR Review
+# /review — PR Review
 
-Follow the communication tone in `${CLAUDE_PLUGIN_ROOT}/skills/pr-review/references/tone.md`.
+Follow the communication tone in `${CLAUDE_PLUGIN_ROOT}/skills/review/references/tone.md`.
 
 You are reviewing a PR with specialist agents and confidence-based scoring. You combine deep specialist analysis with aggressive noise filtering — only findings above confidence threshold reach the user (65% user-facing, 80% internal).
 
@@ -69,19 +69,6 @@ Read the diff and classify each file:
 - **Test files** (.test.ts, .spec.ts) — triggers test-coverage-reviewer
 - **Files with code comments** (JSDoc, inline comments) — triggers comment-analyzer
 - **Files with high git churn** (check `git log --oneline -10 -- [file]`) — triggers history-reviewer
-- **Frontend/styling files** — triggers design-reviewer:
-  - CSS, SCSS, or PostCSS files
-  - Files containing Tailwind classes in JSX/TSX (`className=`)
-  - Tailwind config files (`tailwind.config.*`)
-  - Component files with inline styles or style objects
-  - Font imports (`@import`, `@font-face`, Google Fonts links)
-- **Stateful async code** — triggers flow-tracer:
-  - Event listeners (`addEventListener`, `.on('event'`, `onMessage`, `onDidChange`)
-  - WebSocket/MessagePort handlers (`ws.on`, `port.onmessage`, `postMessage`)
-  - Pub/sub or command/response patterns across files
-  - State machines or status/phase enums with transition logic
-  - Polling patterns (`setInterval`, `setTimeout` in loops, retry logic)
-  - NOT React synthetic event props (`onClick`, `onChange`, `onSubmit` in JSX) — these are component-local, not cross-handler flows
 - **Security-sensitive files** — triggers security-reviewer:
   - `.env`, `.env.*` files in the diff
   - Config/settings files (`config.ts`, `*.config.*`, `settings.*`)
@@ -92,7 +79,7 @@ Read the diff and classify each file:
 
 ### 2. Detect platform and inject context
 
-Identify the project platform (e.g., Next.js, VS Code extension, CLI tool) from package.json, file structure, and framework markers. If a known platform is detected, inject the appropriate context into the `{{platform_context}}` slot in the review dispatch prompt (`skills/pr-review/references/review-prompt.md`).
+Identify the project platform (e.g., Next.js, VS Code extension, CLI tool) from package.json, file structure, and framework markers. If a known platform is detected, inject the appropriate context into the `{{platform_context}}` slot in the review dispatch prompt (`skills/review/references/review-prompt.md`).
 
 ### 3. Check for coding standards
 
@@ -114,11 +101,9 @@ Before building the roster, check if the participant has coding standards instal
 
 Always include:
 - `code-quality-reviewer` (sonnet)
-- `code-simplifier` (sonnet) — runs after others
+- `code-simplifier` (inherit) — runs after others
 
 Conditionally include based on file classification above:
-- `design-reviewer` (sonnet) — if frontend/styling files detected
-- `flow-tracer` (sonnet) — if stateful async code detected
 - `silent-failure-hunter` (sonnet)
 - `type-design-reviewer` (inherit)
 - `test-coverage-reviewer` (sonnet)
@@ -148,17 +133,9 @@ You MUST NOT write review findings yourself. All findings come from dispatched s
 
 ### 1. Dispatch agents
 
-Load `skills/pr-review/references/review-prompt.md` for the dispatch template. You MUST call the Agent tool for each specialist in the roster. Launch all independent specialists in a **single message with multiple Agent tool calls** for parallel execution.
+Load `skills/review/references/review-prompt.md` for the dispatch template. You MUST call the Agent tool for each specialist in the roster. Launch all independent specialists in a **single message with multiple Agent tool calls** for parallel execution.
 
-**Design enrichment:** When dispatching the `design-reviewer`:
-1. Read `skills/pr-review/references/stack-detection.md` — use the detection table to identify the project's stack from `package.json`, then inject the result into the dispatch template's `[Detected Tech Stack]` slot.
-2. Read `skills/pr-review/references/anti-slop-patterns.md` — include the full pattern catalogue in the Agent prompt so the agent has the detection heuristics.
-3. Read `skills/pr-review/references/design-review-prompt.md` for the dispatch template structure.
-4. If a PRD exists, extract the Visual Direction section and include it — otherwise instruct the agent to skip PRD conformance and run the anti-slop scan only.
-
-**Flow-tracer enrichment:** When dispatching the `flow-tracer`, scope the diff to files containing stateful async patterns (handlers, listeners, polling, state transitions). Include the full flow context — if the PR modifies one handler in a chain, include the other handlers from the same file so the agent can trace the complete lifecycle.
-
-**Security enrichment:** When dispatching the `security-reviewer`, read `skills/pr-review/references/security-detection-guide.md` and include its content in the Agent prompt alongside the standard review-prompt.md template. This gives the agent the detection heuristics and PII taxonomy it needs.
+**Dispatch enrichment:** When dispatching the `security-reviewer`, read `skills/review/references/security-detection-guide.md` and include its content in the Agent prompt alongside the standard review-prompt.md template. This gives the agent the detection heuristics and PII taxonomy it needs.
 
 **Standards enrichment:** When dispatching the `standards-reviewer`, inject the pre-selected coding standards rule content (gathered in Phase 2, Step 3) into the Agent prompt. Do NOT tell the agent to read files — provide the rule content directly. The agent receives concrete rules, not file paths.
 
@@ -185,16 +162,6 @@ Agent tool calls (all in one message for parallel execution):
     description: "Review #[number] type design"
     prompt: [review prompt with type-design-reviewer focus + relevant diff]
 
-  Agent 4:
-    description: "Review #[number] design quality"
-    model: "sonnet"
-    prompt: [design-review-prompt template with detected stack + Visual Direction + relevant diff]
-
-  Agent 5:
-    description: "Review #[number] state flows"
-    model: "sonnet"
-    prompt: [review prompt with flow-tracer focus + relevant diff + surrounding handler context]
-
   ... (one per specialist in the roster)
 ```
 
@@ -202,7 +169,7 @@ Do NOT review the code yourself. Do NOT "quickly check" one area because it seem
 
 ### 2. Dispatch code-simplifier last
 
-After all other agents return, you MUST call the Agent tool with `model: "sonnet"` for the code-simplifier. Provide in the Agent prompt:
+After all other agents return, you MUST call the Agent tool for the code-simplifier. Provide in the Agent prompt:
 - The full diff
 - Findings from other agents (so it doesn't duplicate their work)
 
@@ -227,7 +194,7 @@ You MUST NOT score findings yourself. Dispatch a single scoring agent via the Ag
 
 ### 1. Score each finding
 
-You MUST call the Agent tool with `model: "haiku"` to score all findings. Provide in the Agent prompt:
+You MUST call the Agent tool with `model: "sonnet"` to score all findings. Provide in the Agent prompt:
 - All findings from Phase 3 (description, file, line, evidence, agent, suggestion)
 - The scoring rubric below
 - The PR diff for verification
@@ -235,7 +202,7 @@ You MUST call the Agent tool with `model: "haiku"` to score all findings. Provid
 ```
 Agent tool call:
   description: "Score #[number] review findings"
-  model: "haiku"
+  model: "sonnet"
   prompt: [all findings + scoring rubric + diff]
 ```
 
@@ -315,7 +282,7 @@ Read `.prd/` directory, find the highest existing version number N across ALL fi
 version: {N+1}
 status: deferred
 date: {today}
-author: /pr-review
+author: /review
 previous: prd-v{N}.md
 ---
 
@@ -443,7 +410,7 @@ After presenting findings, direct the participant to GitHub and suggest the next
 - **Evidence required** — no finding without file:line and code snippet.
 - **Changed code only** — never flag pre-existing issues.
 - **No CI duplication** — don't flag what linters, typecheckers, or tests catch.
-- **Cheap where possible** — Haiku for scoring, sonnet/inherit for actual review.
+- **Model selection** — sonnet for scoring and specialist review, inherit (Opus) for judgment-heavy agents (code-simplifier, type-design-reviewer).
 - **Simplifier runs last** — it benefits from seeing other agents' findings to avoid overlap.
 - **Full SHA in links** — abbreviated SHAs break GitHub links.
 - **Draft-to-ready conversion** — draft PRs from /build are the expected input. Convert them to ready, don't reject them.

@@ -63,15 +63,15 @@ The fundamental track uses "I do → We do → You do" scaffolding. Each command
 
 | Command | Scaffolding | What this means |
 |---------|------------|-----------------|
-| `/prd` | We do | Plugin guides, participant decides. Questions, options, approvals. |
+| `/plan` | We do | Plugin guides, participant decides. Questions, options, approvals. |
 | `/tickets` | We do | Plugin proposes breakdown, participant approves. |
 | `/build` | I do | Plugin works, participant supervises. Status updates, not questions. |
-| `/pr-review` | You do | Plugin surfaces findings, participant reads them on GitHub and decides. |
+| `/review` | You do | Plugin surfaces findings, participant reads them on GitHub and decides. |
 | `/localhost` | You do | Plugin starts server and gives checklist, participant tests independently. |
 | `/launch` | We do | Plugin handles deployment mechanics, participant watches and learns. |
-| `/guide` | Adaptive | More support when lost, less when they just need direction. |
+| `/help` | Adaptive | More support when lost, less when they just need direction. |
 
-Match the scaffolding level. Don't over-guide during `/build` (they should watch, not decide every line). Don't under-guide during `/prd` (they need options and explanations).
+Match the scaffolding level. Don't over-guide during `/build` (they should watch, not decide every line). Don't under-guide during `/plan` (they need options and explanations).
 
 ---
 
@@ -83,7 +83,7 @@ Match the scaffolding level. Don't over-guide during `/build` (they should watch
 | Confusion / vagueness | Curious, patient | "Tell me more about that." |
 | Error / problem | Calm, explanatory | "That's called a merge conflict. It means two changes touched the same file. Here's what I'll do..." |
 | Completion | Celebratory but understated | "That's your PRD done. When you're ready, `/tickets` turns it into a build plan." |
-| Lost / stuck (`/guide`) | Reassuring, never condescending | "Let's figure this out together." |
+| Lost / stuck (`/help`) | Reassuring, never condescending | "Let's figure this out together." |
 | Overambitious scope | Gentle, redirecting | "That's a great idea — but it'll need more time than we have today. How about we start with [simpler version]?" |
 
 ---
@@ -117,7 +117,7 @@ A bank of voice-consistent phrases for common moments:
 - "All tickets built. Your pull request is ready for review."
 - "Your project is live. You just went from an idea to a URL."
 
-**Recovering (/guide):**
+**Recovering (/help):**
 - "Let me check where things are..."
 - "It looks like the build got interrupted. Let me pick up where it left off."
 - "This one might need an instructor — let me summarise what's going on so you can show them."
