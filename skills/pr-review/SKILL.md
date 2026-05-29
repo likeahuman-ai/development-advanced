@@ -69,6 +69,19 @@ Read the diff and classify each file:
 - **Test files** (.test.ts, .spec.ts) — triggers test-coverage-reviewer
 - **Files with code comments** (JSDoc, inline comments) — triggers comment-analyzer
 - **Files with high git churn** (check `git log --oneline -10 -- [file]`) — triggers history-reviewer
+- **Frontend/styling files** — triggers design-reviewer:
+  - CSS, SCSS, or PostCSS files
+  - Files containing Tailwind classes in JSX/TSX (`className=`)
+  - Tailwind config files (`tailwind.config.*`)
+  - Component files with inline styles or style objects
+  - Font imports (`@import`, `@font-face`, Google Fonts links)
+- **Stateful async code** — triggers flow-tracer:
+  - Event listeners (`addEventListener`, `.on('event'`, `onMessage`, `onDidChange`)
+  - WebSocket/MessagePort handlers (`ws.on`, `port.onmessage`, `postMessage`)
+  - Pub/sub or command/response patterns across files
+  - State machines or status/phase enums with transition logic
+  - Polling patterns (`setInterval`, `setTimeout` in loops, retry logic)
+  - NOT React synthetic event props (`onClick`, `onChange`, `onSubmit` in JSX) — these are component-local, not cross-handler flows
 - **Security-sensitive files** — triggers security-reviewer:
   - `.env`, `.env.*` files in the diff
   - Config/settings files (`config.ts`, `*.config.*`, `settings.*`)
@@ -104,6 +117,8 @@ Always include:
 - `code-simplifier` (sonnet) — runs after others
 
 Conditionally include based on file classification above:
+- `design-reviewer` (sonnet) — if frontend/styling files detected
+- `flow-tracer` (sonnet) — if stateful async code detected
 - `silent-failure-hunter` (sonnet)
 - `type-design-reviewer` (inherit)
 - `test-coverage-reviewer` (sonnet)
@@ -135,7 +150,15 @@ You MUST NOT write review findings yourself. All findings come from dispatched s
 
 Load `skills/pr-review/references/review-prompt.md` for the dispatch template. You MUST call the Agent tool for each specialist in the roster. Launch all independent specialists in a **single message with multiple Agent tool calls** for parallel execution.
 
-**Dispatch enrichment:** When dispatching the `security-reviewer`, read `skills/pr-review/references/security-detection-guide.md` and include its content in the Agent prompt alongside the standard review-prompt.md template. This gives the agent the detection heuristics and PII taxonomy it needs.
+**Design enrichment:** When dispatching the `design-reviewer`:
+1. Read `skills/pr-review/references/stack-detection.md` — use the detection table to identify the project's stack from `package.json`, then inject the result into the dispatch template's `[Detected Tech Stack]` slot.
+2. Read `skills/pr-review/references/anti-slop-patterns.md` — include the full pattern catalogue in the Agent prompt so the agent has the detection heuristics.
+3. Read `skills/pr-review/references/design-review-prompt.md` for the dispatch template structure.
+4. If a PRD exists, extract the Visual Direction section and include it — otherwise instruct the agent to skip PRD conformance and run the anti-slop scan only.
+
+**Flow-tracer enrichment:** When dispatching the `flow-tracer`, scope the diff to files containing stateful async patterns (handlers, listeners, polling, state transitions). Include the full flow context — if the PR modifies one handler in a chain, include the other handlers from the same file so the agent can trace the complete lifecycle.
+
+**Security enrichment:** When dispatching the `security-reviewer`, read `skills/pr-review/references/security-detection-guide.md` and include its content in the Agent prompt alongside the standard review-prompt.md template. This gives the agent the detection heuristics and PII taxonomy it needs.
 
 **Standards enrichment:** When dispatching the `standards-reviewer`, inject the pre-selected coding standards rule content (gathered in Phase 2, Step 3) into the Agent prompt. Do NOT tell the agent to read files — provide the rule content directly. The agent receives concrete rules, not file paths.
 
@@ -161,6 +184,16 @@ Agent tool calls (all in one message for parallel execution):
   Agent 3:
     description: "Review #[number] type design"
     prompt: [review prompt with type-design-reviewer focus + relevant diff]
+
+  Agent 4:
+    description: "Review #[number] design quality"
+    model: "sonnet"
+    prompt: [design-review-prompt template with detected stack + Visual Direction + relevant diff]
+
+  Agent 5:
+    description: "Review #[number] state flows"
+    model: "sonnet"
+    prompt: [review prompt with flow-tracer focus + relevant diff + surrounding handler context]
 
   ... (one per specialist in the roster)
 ```
