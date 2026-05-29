@@ -282,7 +282,7 @@ git push -u origin feat/[feature-name]
 - **>= 20 lines changed:** Create as **draft**. The full multi-agent review must run before this PR is mergeable — GitHub prevents merging draft PRs. Use `gh pr create --draft`.
 - **< 20 lines changed:** Create as **ready** (non-draft). Trivial changes (typo fixes, config tweaks) don't need the full cycle. Note in the summary: "Small change — consider running /review but not blocking merge."
 
-Use `gh pr create` (with `--draft` for >= 20 lines) with a HEREDOC body. Follow the template from `skills/build/references/pr-template.md`.
+Use `gh pr create` (with `--draft` for >= 20 lines), passing the body via `--body-file` (write the body to a temp file with the Write tool — a heredoc would let the shell execute backticks/`$` in the markdown). Follow the template from `skills/build/references/pr-template.md`.
 
 After creating the PR, apply the `needs-review` label:
 

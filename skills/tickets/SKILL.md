@@ -142,20 +142,16 @@ For each ticket in the approved breakdown:
 4. Create task issues, referencing feature and adding dependency links.
 5. Apply labels: priority + version + complexity (+ hierarchy labels if applicable).
 
-Use `gh issue create` with `--title`, `--body`, and `--label` flags. Use HEREDOCs for the body.
+**One issue per `gh issue create` call — never a generated script.** Each create is its own Bash call. Read the new issue number from its output and use it in the next call. This keeps writes sequential (concurrent creates trip GitHub's secondary rate limit), keeps each create legible, and makes failures safe — if #9 fails, #1–8 already exist and you see exactly where it stopped.
 
-**Batch the creates.** Run each hierarchy level inside a single Bash invocation rather than one tool-call per issue. Keep the `gh issue create` calls **sequential within the shell** (concurrent issue creation can trip GitHub's secondary rate limit) and capture the numbers you need for cross-references into shell variables:
+**Pass the body with `--body-file`, not a heredoc.** Issue bodies are markdown full of backticks, `$`, and `()` — characters the shell executes inside a heredoc, which silently mangles the body or breaks the command. Write each body to a temp file with the Write tool, then point `gh` at it:
 
 ```bash
-# Level 1: epics — capture each number for features to reference
-epic_auth=$(gh issue create --title "..." --body "..." --label "epic:auth,v1" | grep -oE '[0-9]+' | tail -1)
-# Level 2: features — reference the epic, capture for tasks
-feat_login=$(gh issue create --title "..." --body "Part of #$epic_auth" --label "feature:login,v1" | grep -oE '[0-9]+' | tail -1)
-# Level 3: tasks — reference the feature
-gh issue create --title "..." --body "Blocked by #$feat_login" --label "S,blocker,v1"
+gh issue create --title "Add login form" --body-file /tmp/ticket-login.md --label "feature:login,v1,M"
+# prints the new issue URL, e.g. .../issues/42 — note the 42 for the next body
 ```
 
-This turns N model round-trips into one per level. `gh issue create` prints the new issue URL; `grep -oE '[0-9]+' | tail -1` takes the trailing issue number portably (survives a trailing slash or stray whitespace). If any `epic_*`/`feat_*` variable comes back empty (e.g. `gh` failed or prompted), STOP and report — do not create child issues with empty parent references.
+**You thread the cross-references, not the shell.** Shell variables don't survive between separate Bash calls, so don't try to capture numbers into them. Instead: create in dependency order (parents before children), read each printed number, and write it literally into the next body file (`Part of #41`, `Blocked by #42`). If a create prints no number (gh failed or prompted), STOP and report — never create a child that references a parent that doesn't exist.
 
 ### Present summary
 
@@ -280,5 +276,5 @@ After all issues are created and the build-order issue is pinned, update the PRD
 - **Acceptance criteria are testable**, not subjective.
 - **Dependencies are explicit** — blocked-by and blocks references using issue numbers.
 - **Complexity is AI resource cost** (S/M/L), never time estimates.
-- **Batch Bash** — create labels in one looped invocation and issues sequentially-within-one-invocation per hierarchy level; never one tool-call per label or per issue. Reuse the PRD/ADR content you already read instead of re-querying. macOS/BSD-portable shell only.
+- **Batch reads, sequence writes** — create labels in one looped invocation (idempotent, no cross-references), but create issues one `gh issue create` call at a time so you can thread numbers between calls and fail safely; never bundle the creates into a script. Reuse the PRD/ADR content you already read instead of re-querying. macOS/BSD-portable shell only.
 - **Wave analysis enables parallel execution** — tickets in the same wave have no HARD dependencies between them and can be implemented simultaneously by /build.

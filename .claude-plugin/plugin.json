@@ -1,6 +1,6 @@
 {
   "name": "development-advanced",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Advanced dev workflow — /plan (+ ADRs) /tickets /build /review /refine (+ spec)",
   "author": {
     "name": "LikeAHuman.ai",
