@@ -1,8 +1,8 @@
 ---
 name: code-simplifier
-description: "Finds opportunities to simplify code without changing behavior. Reduces nesting, eliminates redundancy, improves readability. Always runs, after other reviewers.
+description: "Finds opportunities to simplify code without changing behavior. Reduces nesting, eliminates redundancy, improves readability. Always runs, in parallel with other reviewers.
 <example>
-Context: /review always dispatches this agent after other reviewers finish
+Context: /review dispatches this agent in the parallel specialist batch
 user: Review PR #42
 agent: Finds a 4-level nested conditional that can be flattened with early returns, and a wrapper function that just passes arguments through unchanged
 </example>

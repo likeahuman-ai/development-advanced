@@ -108,8 +108,8 @@ Before building the roster, check if the participant has coding standards instal
 ### 4. Build the specialist roster
 
 Always include:
-- `code-quality-reviewer` (sonnet)
-- `code-simplifier` (inherit) — runs after others
+- `code-quality-reviewer` (inherit)
+- `code-simplifier` (inherit)
 
 Conditionally include based on file classification above:
 - `silent-failure-hunter` (sonnet)
@@ -147,6 +147,8 @@ Load `skills/pr-review/references/review-prompt.md` for the dispatch template. Y
 
 **Standards enrichment:** When dispatching the `standards-reviewer`, inject the pre-selected coding standards rule content (gathered in Phase 2, Step 3) into the Agent prompt. Do NOT tell the agent to read files — provide the rule content directly. The agent receives concrete rules, not file paths.
 
+**code-simplifier:** Dispatch it in this same parallel batch like any other specialist — omit the model field so it inherits (Opus). It reviews the full diff. It previously ran last to dedupe against other agents' findings; that de-duplication now happens at scoring (Phase 4), so it no longer waits on the others.
+
 For each agent, provide in the Agent prompt:
 - PR context (number, title, description)
 - The relevant portion of the diff (scoped to the agent's focus area)
@@ -158,7 +160,6 @@ Agent tool calls (all in one message for parallel execution):
 
   Agent 1:
     description: "Review #[number] code quality"
-    model: "sonnet"
     prompt: [review prompt with code-quality-reviewer focus + relevant diff]
 
   Agent 2:
@@ -175,13 +176,7 @@ Agent tool calls (all in one message for parallel execution):
 
 Do NOT review the code yourself. Do NOT "quickly check" one area because it seems simple. Every specialist gets a subagent.
 
-### 2. Dispatch code-simplifier last
-
-After all other agents return, you MUST call the Agent tool for the code-simplifier. Provide in the Agent prompt:
-- The full diff
-- Findings from other agents (so it doesn't duplicate their work)
-
-### 3. Collect all findings
+### 2. Collect all findings
 
 Gather findings from all agent results. Each finding should have:
 - Description
@@ -206,6 +201,7 @@ You MUST call the Agent tool with `model: "sonnet"` to score all findings. Provi
 - All findings from Phase 3 (description, file, line, evidence, agent, suggestion)
 - The scoring rubric below
 - The PR diff for verification
+- Instruction to **deduplicate**: when multiple agents flag the same file:line, merge into one finding — keep the highest score and clearest framing, and note which agents converged (convergence signals importance)
 
 ```
 Agent tool call:
@@ -459,7 +455,7 @@ After presenting findings, direct the participant to GitHub and suggest the next
 - **Evidence required** — no finding without file:line and code snippet.
 - **Changed code only** — never flag pre-existing issues.
 - **No CI duplication** — don't flag what linters, typecheckers, or tests catch.
-- **Model selection** — sonnet for scoring and specialist review, inherit (Opus) for judgment-heavy agents (code-simplifier, type-design-reviewer).
-- **Simplifier runs last** — it benefits from seeing other agents' findings to avoid overlap.
+- **Model selection** — sonnet for scoring and the pattern/extraction specialists; inherit (Opus) for the reasoning-heavy agents (code-quality-reviewer, code-simplifier, type-design-reviewer), all dispatched in the parallel batch so Opus latency is absorbed rather than added sequentially.
+- **De-duplication at scoring** — the simplifier runs in the parallel batch (no longer last); the scoring agent merges findings that multiple agents flag for the same file:line.
 - **Full SHA in links** — abbreviated SHAs break GitHub links.
 - **Draft-to-ready conversion** — draft PRs from /build are the expected input. Convert them to ready, don't reject them.
