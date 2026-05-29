@@ -1,14 +1,14 @@
 ---
-name: plan
+name: prd
 description: "Create a PRD with ADR capture through guided discovery, codebase exploration, and architecture discussion. Use when participant has an idea for what to build, says 'I want to build', 'let's plan', 'I have a project idea', or wants to start a new development cycle."
 argument-hint: "Brief description of the feature (optional)"
 ---
 
-# /plan — PRD + ADR Creation
+# /prd — PRD + ADR Creation
 
 You are a knowledgeable PA guiding the participant from a feature idea to a complete PRD with architectural decisions captured as ADRs. You work through five phases: project setup, discovery, codebase exploration, architecture (with decision tracking), and PRD + ADR writing.
 
-Follow the communication tone in `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/tone.md`. Curious, encouraging, context-aware.
+Follow the communication tone in `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/tone.md`. Curious, encouraging, context-aware.
 
 The PRD feeds into `/tickets`. The ADRs feed into all subsequent phases as architectural constraints.
 
@@ -88,16 +88,16 @@ Respect and enforce the PRD lifecycle: `deferred → draft → built → release
         > "Plugin installed. Now I need you to do two things:
         > 1. Type `/reload-plugins` (I can't run this for you — it's a built-in command)
         > 2. Then run `/coding-interview new` to set up your standards
-        > 3. Come back to `/plan` when you're done."
-     4. **STOP here.** Do NOT continue with Phase 1. The participant needs to reload plugins and run the interview first. They will re-run `/plan` afterwards.
+        > 3. Come back to `/prd` when you're done."
+     4. **STOP here.** Do NOT continue with Phase 1. The participant needs to reload plugins and run the interview first. They will re-run `/prd` afterwards.
      5. If install fails: provide manual steps:
         > "Auto-install didn't work. Here's how to install manually:
         > 1. Run: `claude plugin install coding-standards@likeahuman`
         > 2. If that fails, try: `claude plugin install https://github.com/likeahuman-ai/coding-standards.git`
         > 3. Type `/reload-plugins` to load the new plugin
         > 4. Then run `/coding-interview new` to set up your standards
-        > 5. Come back to `/plan` when you're done."
-   - **If participant says no** → continue with `/plan` as normal. Don't mention it again this session.
+        > 5. Come back to `/prd` when you're done."
+   - **If participant says no** → continue with `/prd` as normal. Don't mention it again this session.
 
 ---
 
@@ -105,7 +105,7 @@ Respect and enforce the PRD lifecycle: `deferred → draft → built → release
 
 **Goal:** Understand the problem the participant wants to solve. Gauge their depth and adapt.
 
-Reference `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/tone.md` for communication style — curious, encouraging, context-aware.
+Reference `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/tone.md` for communication style — curious, encouraging, context-aware.
 
 ### Gauge depth from signals
 
@@ -134,7 +134,7 @@ When you can summarise the feature in 3-5 sentences and the participant confirms
 
 **Goal:** Get fresh codebase context for the areas this feature will touch.
 
-Launch 2-3 `codebase-explorer` agents (sonnet, parallel) using `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/explorer-prompt.md`. Each agent gets a different mode (architecture mapping, pattern matching, integration analysis).
+Launch 2-3 `codebase-explorer` agents (sonnet, parallel) using `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/explorer-prompt.md`. Each agent gets a different mode (architecture mapping, pattern matching, integration analysis).
 
 If `.spec/spec.md` exists, scope exploration to areas the new feature TOUCHES — don't re-map what the spec already describes. The spec IS the system map.
 
@@ -177,13 +177,13 @@ Do NOT interrupt the flow to formally capture ADRs yet. Let the discussion be na
 
 ### 4.1 Write the PRD
 
-Same as fundamental. Use `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/prd-template.md`. Write to `.prd/prd-v{N}.md`.
+Same as fundamental. Use `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/prd-template.md`. Write to `.prd/prd-v{N}.md`.
 
 ### 4.2 Capture ADRs
 
 After the PRD is written, reflect on the architecture discussion. For each decision that crosses the threshold:
 
-1. Draft an ADR entry using the format in `${CLAUDE_PLUGIN_ROOT}/skills/plan/references/adr-format.md`
+1. Draft an ADR entry using the format in `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/adr-format.md`
 2. Include the Y-statement, context, alternatives, consequences, scope, and revisit trigger
 
 **Intent gate — present to user:**

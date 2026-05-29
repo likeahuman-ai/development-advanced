@@ -2,7 +2,7 @@
 name: design-reviewer
 description: "Reviews frontend code for design quality — checks tech stack conformance, PRD visual direction adherence, and AI slop patterns. Produces confidence-scored findings.
 <example>
-Context: /review dispatches this agent when the PR contains CSS, Tailwind classes, or JSX components
+Context: /pr-review dispatches this agent when the PR contains CSS, Tailwind classes, or JSX components
 user: Review PR #42 that adds a landing page
 agent: Checks fonts against PRD direction (approved Bricolage Grotesque, found Inter import), flags a nested card pattern, reports border-left accent stripe on alert component — all with confidence scores
 </example>

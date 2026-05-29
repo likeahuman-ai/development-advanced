@@ -2,7 +2,7 @@
 name: code-quality-reviewer
 description: "Reviews PR diffs for bugs, logic errors, missing error handling, and pattern violations. Always runs on every review.
 <example>
-Context: /review always dispatches this agent as the core quality gate
+Context: /pr-review always dispatches this agent as the core quality gate
 user: Review PR #42
 agent: Scans the diff for null access, race conditions, missing error handling, and pattern violations, reporting each with file:line evidence and fix suggestions
 </example>

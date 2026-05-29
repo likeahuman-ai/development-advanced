@@ -2,7 +2,7 @@
 name: comment-analyzer
 description: "Checks whether code comments match the actual code. Finds comment rot, misleading docs, and outdated explanations. Runs when changed files contain code comments.
 <example>
-Context: /review detects that changed files contain JSDoc or inline comments
+Context: /pr-review detects that changed files contain JSDoc or inline comments
 user: Review PR #42
 agent: Compares each comment in the diff against the actual code behavior, flagging stale parameter descriptions and misleading algorithm explanations
 </example>

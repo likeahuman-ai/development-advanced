@@ -2,12 +2,12 @@
 name: standards-reviewer
 description: "Checks PR diffs against the participant's coding standards. Only dispatched when the coding-standards plugin is installed. Receives pre-selected rule files from the orchestrator.
 <example>
-Context: /review detects coding standards are installed and the PR contains React components
+Context: /pr-review detects coding standards are installed and the PR contains React components
 user: Review PR #42
 agent: Checks the diff against component-architecture.md and react-patterns.md rules, finds a default export in a non-page component and an inline type that should be extracted, reports both with file:line evidence
 </example>
 <example>
-Context: /review dispatches this agent alongside code-quality-reviewer for a PR with TypeScript and Convex changes
+Context: /pr-review dispatches this agent alongside code-quality-reviewer for a PR with TypeScript and Convex changes
 user: Review my PR
 agent: Checks against typescript-quality.md and convex-backend.md rules, finds a missing auth guard on a Convex mutation and a bare `any` type, reports both
 </example>"

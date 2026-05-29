@@ -2,7 +2,7 @@
 name: type-design-reviewer
 description: "Analyzes TypeScript type design for encapsulation, invariant expression, and correctness. Runs when types are added or modified.
 <example>
-Context: /review detects new or modified type definitions in the PR diff
+Context: /pr-review detects new or modified type definitions in the PR diff
 user: Review PR #42
 agent: Evaluates whether the new ToolStatus union type makes invalid states unrepresentable and whether exported types leak internal implementation details
 </example>

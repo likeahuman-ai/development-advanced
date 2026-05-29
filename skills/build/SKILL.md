@@ -142,7 +142,7 @@ The goal is to front-load everything into the prompt so the subagent has what it
 
 ### Step 3: Dispatch implementers in parallel
 
-Dispatch all implementers for the wave in a **single message with multiple Agent tool calls** for parallel execution. This is the same pattern used by /review to dispatch specialist agents.
+Dispatch all implementers for the wave in a **single message with multiple Agent tool calls** for parallel execution. This is the same pattern used by /pr-review to dispatch specialist agents.
 
 Select model based on ticket complexity:
 - **S** (small) → `model: "sonnet"`
@@ -262,7 +262,7 @@ git push -u origin feat/[feature-name]
 
 **Draft vs ready — size-based gate:**
 - **>= 20 lines changed:** Create as **draft**. The full multi-agent review must run before this PR is mergeable — GitHub prevents merging draft PRs. Use `gh pr create --draft`.
-- **< 20 lines changed:** Create as **ready** (non-draft). Trivial changes (typo fixes, config tweaks) don't need the full cycle. Note in the summary: "Small change — consider running /review but not blocking merge."
+- **< 20 lines changed:** Create as **ready** (non-draft). Trivial changes (typo fixes, config tweaks) don't need the full cycle. Note in the summary: "Small change — consider running /pr-review but not blocking merge."
 
 Use `gh pr create` (with `--draft` for >= 20 lines) with a HEREDOC body. Follow the template from `skills/build/references/pr-template.md`.
 
@@ -277,15 +277,15 @@ gh pr edit [number] --add-label "needs-review"
 ```
 ## Built: [Feature Name]
 
-**PR:** [URL] (draft — run /review to unlock merge)
+**PR:** [URL] (draft — run /pr-review to unlock merge)
 **Tickets closed:** #203, #204, #205
 **Lines changed:** [N]
 **Waves:** [W] waves, [N] tickets total
   Wave 1: #203, #204 (parallel)
   Wave 2: #205 (sequential — single ticket)
 
-This PR is a draft — it cannot be merged until /review converts it to ready.
-Run /review next to unlock the PR and get the full multi-agent review.
+This PR is a draft — it cannot be merged until /pr-review converts it to ready.
+Run /pr-review next to unlock the PR and get the full multi-agent review.
 ```
 
 For small (< 20 line) PRs created as ready:
@@ -296,7 +296,7 @@ For small (< 20 line) PRs created as ready:
 **PR:** [URL]
 **Lines changed:** [N]
 
-Small change — consider running /review but not blocking merge.
+Small change — consider running /pr-review but not blocking merge.
 ```
 
 If stacked PRs were created, list all PR URLs with their wave groupings. Apply `needs-review` to each.

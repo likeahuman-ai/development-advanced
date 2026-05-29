@@ -1,7 +1,7 @@
 ---
 name: spec-writer
 description: "Produces or updates the living system specification (.spec/spec.md). Receives PR diff, touched files, ADRs, and existing spec. Follows spec-format.md template rigidly for consistent output across cycles."
-model: sonnet
+model: inherit
 color: blue
 ---
 

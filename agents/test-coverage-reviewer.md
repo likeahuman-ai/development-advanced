@@ -2,7 +2,7 @@
 name: test-coverage-reviewer
 description: "Reviews test quality — do tests actually verify behavior? Missing edge cases? Runs when test files changed.
 <example>
-Context: /review detects new or modified test files in the PR
+Context: /pr-review detects new or modified test files in the PR
 user: Review PR #42
 agent: Checks whether new tests verify actual behavior (not just line coverage), flags missing edge case tests for error paths and boundary values
 </example>

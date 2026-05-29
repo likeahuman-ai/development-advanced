@@ -2,7 +2,7 @@
 name: silent-failure-hunter
 description: "Hunts for swallowed errors, empty catch blocks, and silent failures in PR diffs. Runs when error handling code changed.
 <example>
-Context: /review detects try/catch blocks or error handling in the changed files
+Context: /pr-review detects try/catch blocks or error handling in the changed files
 user: Review PR #42
 agent: Finds an empty catch block that swallows a network error, leaving the user with no feedback when the install fails silently
 </example>

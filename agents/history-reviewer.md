@@ -2,7 +2,7 @@
 name: history-reviewer
 description: "Uses git blame, history, and previous PR review comments to find fragile code — lines with high churn, repeated fixes, conflicting changes, or recurring review feedback. Runs when modified lines have 3+ changes in recent history.
 <example>
-Context: /review detects that modified lines have been changed frequently in recent commits
+Context: /pr-review detects that modified lines have been changed frequently in recent commits
 user: Review PR #42
 agent: Runs git blame on changed regions, finds that the install retry logic has been patched 5 times in 3 weeks, flags it as a fragility hotspot
 </example>

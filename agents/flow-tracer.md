@@ -2,7 +2,7 @@
 name: flow-tracer
 description: "Traces state and message flows end-to-end across handler boundaries. Catches bugs where state is set in one handler but never cleared, updated, or checked in another.
 <example>
-Context: /review dispatches this agent when the PR contains message handlers, event listeners, or callback chains
+Context: /pr-review dispatches this agent when the PR contains message handlers, event listeners, or callback chains
 user: Review PR #87 that adds a multi-step install flow
 agent: Traces the install state through start -> progress -> success/failure handlers, finds that failure leaves the UI stuck in 'installing' state because the error handler never resets the progress flag
 </example>
