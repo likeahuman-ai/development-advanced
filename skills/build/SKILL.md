@@ -10,6 +10,14 @@ You are implementing GitHub Issue tickets. You look for a build-order artifact f
 
 You are mostly autonomous — one approval gate (build order) then continuous execution until done.
 
+## Trust the artifact
+
+The build-order you were handed is the **approved plan** — its decisions are already made and were already gated. Execute it as written. Do **not** re-derive it, re-validate it, re-confirm it, or re-present it for approval. A check whose normal outcome is "confirmed, proceed as written" is noise — don't run it.
+
+Deviate **only** when faithful execution would *actually break*: a referenced file, symbol, or issue does not exist, or two instructions directly contradict. When you must deviate — **stop, amend the artifact with the reason** (edit it / comment it), then proceed. **Never diverge silently:** a change that isn't written back into the artifact makes the artifact lie, and a lying artifact is worse than none.
+
+`## Parallel Waves` is authoritative — dispatch the waves as written; do not recompute disjointness or re-gate the approved plan. Use `## Verify` verbatim.
+
 **Initial request:** $ARGUMENTS
 
 ---
@@ -115,18 +123,11 @@ This happens once before the first wave, not per-wave.
 
 For each wave in the approved build order, execute this loop:
 
-### Step 1: Pre-wave file overlap check
+### Step 1: Dispatch the wave as written
 
-Before dispatching any tickets in this wave, verify that tickets don't conflict at the file level. The wave analysis in /tickets guarantees no HARD dependencies between wave members, but two tickets might still modify the same file without declaring a dependency.
+The `## Parallel Waves` section is authoritative. `/tickets` computed each wave to be HARD-dependency-free **and file-disjoint** (no two tickets in a wave share a `creates`/`modifies` path). Do **not** re-derive or re-check disjointness — that work is done, and re-checking a correct grouping is noise. Dispatch every ticket in the wave in parallel.
 
-For each ticket in the wave, extract file paths from:
-- The ticket body's **Context → Relevant files** field
-- The ticket body's **Files to create/modify** section
-
-Compare these specific paths between all pairs of tickets in the wave. A match means the same exact file path appears in both tickets — shared directory prefixes alone are not a conflict.
-
-- **No overlap found:** Proceed to dispatch all tickets in parallel.
-- **Overlap found:** Those specific tickets must run sequentially within the wave. Present: "Tickets #X and #Y both touch `src/path/file.ts`. Running them sequentially within this wave." Dispatch the non-overlapping tickets in parallel first, then the overlapping ones sequentially after.
+(File-safety, not branch isolation, is the lever here: all implementers share one working tree, and the disjoint-wave guarantee is what prevents two parallel implementers from clobbering the same file. The commit-time guard in Step 4.5 catches the rare case where an implementer touches a file outside its declared write-set.)
 
 ### Step 2: Prepare dispatch prompts
 
@@ -134,7 +135,7 @@ For each ticket in the wave, prepare the implementer prompt:
 
 1. Use the full ticket body already fetched in Phase 1 (the `gh issue list` / `gh issue view --json ...,body,...` payload). Do NOT re-fetch it from GitHub — you already have it. (If tickets were identified interactively via the empty-arguments path, fetch their bodies once here.)
 2. Read relevant codebase files the implementer will need (patterns, types, adjacent code)
-3. Load the prompt template from `skills/build/references/implementer-prompt.md`
+3. Load the prompt template from `skills/build/prompts/implementer-prompt.md`
 4. Fill in: ticket content, wave context (wave position, prior wave summaries), and relevant file contents
 5. **Coding standards injection (once per build session):** Check if `~/.claude/skills/coding-standards/SKILL.md` exists. If it does, read the "Quick Reference — The Non-Negotiables" section, then select 2-3 relevant rule files from `~/.claude/skills/coding-standards/rules/` based on the ticket's file areas. Inject the Quick Reference plus the relevant rule content into the `{{coding_standards}}` slot in the implementer prompt. If no file exists, leave the slot empty. Do this check once at the start of Phase 2, not per-wave.
 
@@ -191,11 +192,13 @@ Before proceeding to spec review, verify that all implementers' commits landed s
 
 Run `git log --oneline` and confirm that commits from all successfully completed tickets in this wave are present. If any expected commits are missing, flag the issue to the user before proceeding.
 
+**Residual collision guard (gates on real data, not prediction).** The waves were computed file-disjoint, but an implementer may have touched a file outside its declared write-set. Intersect the **actual** files each wave-commit changed: `git show --name-only --format= <sha>` per commit, and check for any path that appears in two commits from this wave. If two commits hit the same file, flag a possible clobber to the user (the earlier write may have been overwritten) before proceeding. Act only if a real collision is found — do not re-investigate the predicted write-sets.
+
 ### Step 4.6: Full-workspace verification
 
 Implementers verify only their own package (parallel-safe, fast — see the implementer prompt). Cross-package breakage — a change in package A that breaks package B — is caught here, once, after the wave's commits have landed and the tree has settled.
 
-Decide the command yourself first (you have the codebase context; the cold-start agent does not): always `pnpm typecheck && pnpm build`; append `&& pnpm test` only if the suite is known-fast (few packages, or you observed fast runs in earlier waves). Then dispatch a single verification subagent via the Agent tool — the orchestrator must not run project commands itself:
+Use the **exact command from the build-order's `## Verify` section** — `/tickets` already chose it (package-scoped, with any deployment-deferred suites noted). Do not re-derive it. Then dispatch a single verification subagent via the Agent tool — the orchestrator must not run project commands itself:
 
 ```
 Agent tool call:
@@ -227,7 +230,7 @@ Agent tool calls (all in one message for parallel execution):
     prompt: [spec reviewer prompt for ticket 2]
 ```
 
-Use the prompt template from `skills/build/references/spec-reviewer-prompt.md`. Paste the ticket spec and implementer report into each Agent prompt. Spec reviewers must read the actual changed code — they do not trust the implementer's self-report.
+Use the prompt template from `skills/build/prompts/spec-reviewer-prompt.md`. Paste the ticket spec and implementer report into each Agent prompt. Spec reviewers must read the actual changed code — they do not trust the implementer's self-report.
 
 ### Step 6: Fix loop (per-ticket)
 
@@ -282,7 +285,7 @@ git push -u origin feat/[feature-name]
 - **>= 20 lines changed:** Create as **draft**. The full multi-agent review must run before this PR is mergeable — GitHub prevents merging draft PRs. Use `gh pr create --draft`.
 - **< 20 lines changed:** Create as **ready** (non-draft). Trivial changes (typo fixes, config tweaks) don't need the full cycle. Note in the summary: "Small change — consider running /review but not blocking merge."
 
-Use `gh pr create` (with `--draft` for >= 20 lines), passing the body via `--body-file` (write the body to a temp file with the Write tool — a heredoc would let the shell execute backticks/`$` in the markdown). Follow the template from `skills/build/references/pr-template.md`.
+Use `gh pr create` (with `--draft` for >= 20 lines), passing the body via `--body-file` (write the body to a temp file with the Write tool — a heredoc would let the shell execute backticks/`$` in the markdown). Follow the template from `skills/build/formats/pr-format.md`.
 
 After creating the PR, apply the `needs-review` label:
 

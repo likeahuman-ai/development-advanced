@@ -38,26 +38,3 @@ For each finding, include:
 - Specific suggestion for fixing it
 
 If no issues found, say so clearly.
-
----
-
-## Confidence Scoring Prompt (Haiku)
-
-Used to score each finding after specialist agents return.
-
-### Score This Finding
-
-**Finding from [agent name]:**
-[finding text including file, line, evidence, suggestion]
-
-**PR diff context:**
-[relevant code snippet from the diff]
-
-Score this finding 0-100 based on:
-- Is the evidence specific (file, line, code snippet)? (+20)
-- Is the issue in code the PR actually changed? (+20)
-- Would a senior engineer flag this in review? (+20)
-- Is this a real bug or just a preference? (+20 for real bug)
-- Could CI catch this instead? (-20 if yes)
-
-Return ONLY: `score: [0-100]` and one sentence explaining why.

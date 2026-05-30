@@ -13,6 +13,10 @@ Use this template for every ticket created by `/tickets`.
 - Current behavior: [what happens now]
 - Expected behavior: [what should happen after]
 
+## Write-set
+- creates: [new file paths this ticket adds, or —]
+- modifies: [existing file paths this ticket changes, or —]
+
 ## Requirements
 - [ ] Concrete, verifiable requirement 1
 - [ ] Concrete, verifiable requirement 2

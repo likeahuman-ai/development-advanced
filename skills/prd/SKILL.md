@@ -8,7 +8,6 @@ argument-hint: "Brief description of the feature (optional)"
 
 You are a knowledgeable PA guiding the participant from a feature idea to a complete PRD with architectural decisions captured as ADRs. You work through five phases: project setup, discovery, codebase exploration, architecture (with decision tracking), and PRD + ADR writing.
 
-Follow the communication tone in `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/tone.md`. Curious, encouraging, context-aware.
 
 The PRD feeds into `/tickets`. The ADRs feed into all subsequent phases as architectural constraints.
 
@@ -35,14 +34,13 @@ Scan for the three-layer documentation model:
 - Surface relevant constraints: "Previous decisions to keep in mind: [key ADRs]"
 
 **Read `.prd/` directory:**
-- Which PRDs exist, what status, what do they cover
-- Check for `status: deferred` files (review findings from previous cycles)
+- Which PRDs exist, what status, what do they cover. (Versions are 1:1 with sprints — every `prd-v*.md` is a real plan, never a findings dump.)
 
-If a **deferred PRD** exists, surface it:
-> "Last cycle's review found some patterns worth knowing about: [summarise top 3-5 patterns by frequency]. Want to address any of these in this cycle?"
-
-- **Promote:** Change `status: deferred` to `status: draft`, update author/date, use content as seed for Problem section. Apply cascade (all previous built/released → archived).
-- **Fresh start:** Archive the deferred file, create new draft. Findings were surfaced but not adopted.
+**Read `.prd/backlog.md` (if exists):**
+- This is the append-only inbox of review findings that scored real-but-below-threshold (written by `/review`). It is *context*, not a plan to execute.
+- Start from the participant's clean intent for this cycle FIRST. Then glance at the backlog and offer it as optional input:
+  > "The findings backlog has some patterns from past reviews: [summarise top 3-5 by frequency]. Want to fold any into this cycle?"
+- For each finding the participant chooses to address, fold it into the Problem/Scope of the new draft and **check it off in `.prd/backlog.md`** (strike it or mark `[done v{N}]`) so it isn't re-offered next cycle. Leave the rest untouched — dropped on purpose, available later. No promotion, no cascade — the backlog is not a PRD.
 
 ### 0.2 Project scan and context-aware opening
 
@@ -62,7 +60,7 @@ If `.spec/spec.md` exists, you already know the system — use it instead of re-
 
 ### 0.3 PRD lifecycle enforcement
 
-Respect and enforce the PRD lifecycle: `deferred → draft → built → released → archived`.
+Respect and enforce the PRD lifecycle: `draft → built → released → archived`. (There is no `deferred` PRD status — review findings live in the non-versioned `.prd/backlog.md`, not in the version sequence.)
 
 **One-draft rule:** Maximum ONE `status: draft` in `.prd/` at any time. If a draft exists, encourage finishing it. If the participant explicitly wants to abandon it, set status to `abandoned` and create a new one.
 
@@ -105,7 +103,6 @@ Respect and enforce the PRD lifecycle: `deferred → draft → built → release
 
 **Goal:** Understand the problem the participant wants to solve. Gauge their depth and adapt.
 
-Reference `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/tone.md` for communication style — curious, encouraging, context-aware.
 
 ### Gauge depth from signals
 
@@ -134,7 +131,7 @@ When you can summarise the feature in 3-5 sentences and the participant confirms
 
 **Goal:** Get fresh codebase context for the areas this feature will touch.
 
-Launch 2-3 `codebase-explorer` agents (sonnet, parallel) using `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/explorer-prompt.md`. Each agent gets a different mode (architecture mapping, pattern matching, integration analysis).
+Launch 2-3 `codebase-explorer` agents (sonnet, parallel) using `${CLAUDE_PLUGIN_ROOT}/skills/prd/prompts/codebase-explorer-prompt.md`. Each agent gets a different mode (architecture mapping, pattern matching, integration analysis).
 
 If `.spec/spec.md` exists, scope exploration to areas the new feature TOUCHES — don't re-map what the spec already describes. The spec IS the system map.
 
@@ -177,13 +174,13 @@ Do NOT interrupt the flow to formally capture ADRs yet. Let the discussion be na
 
 ### 4.1 Write the PRD
 
-Same as fundamental. Use `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/prd-template.md`. Write to `.prd/prd-v{N}.md`.
+Same as fundamental. Use `${CLAUDE_PLUGIN_ROOT}/skills/prd/formats/prd-format.md`. Write to `.prd/prd-v{N}.md`.
 
 ### 4.2 Capture ADRs
 
 After the PRD is written, reflect on the architecture discussion. For each decision that crosses the threshold:
 
-1. Draft an ADR entry using the format in `${CLAUDE_PLUGIN_ROOT}/skills/prd/references/adr-format.md`
+1. Draft an ADR entry using the format in `${CLAUDE_PLUGIN_ROOT}/skills/prd/formats/adr-format.md`
 2. Include the Y-statement, context, alternatives, consequences, scope, and revisit trigger
 
 **Intent gate — present to user:**

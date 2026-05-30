@@ -12,8 +12,8 @@ Use this template when `/build` dispatches an implementer subagent for a ticket.
 > ### Context
 > This is Wave [W] of [TOTAL_WAVES]. You are implementing ticket [M] of [TOTAL_IN_WAVE] in this wave. All prior waves are committed and visible in the working tree. Do NOT assume other tickets in this wave are complete — they may be executing in parallel. Prior waves completed: [list wave summaries with ticket titles].
 >
-> ### Before You Begin
-> If you have questions about the requirements, constraints, or approach — ask them now before starting work. It's better to clarify upfront than to build the wrong thing.
+> ### The ticket is the spec
+> Implement the ticket exactly as written — it is the approved plan. Do not re-design, re-scope, or re-confirm it. Start immediately. Stop only if faithful execution is *impossible*: a file, symbol, or dependency the ticket references does not exist, or two requirements directly contradict — then report NEEDS_CONTEXT with the specific blocker. A question whose answer is "yes, as the ticket says" is noise; don't ask it.
 >
 > ### Coding Standards
 >

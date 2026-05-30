@@ -2,14 +2,14 @@
 name: codebase-explorer
 description: "Explores a specific aspect of the project's codebase — architecture, patterns, or integration points. Reports findings back to the main model for synthesis.
 <example>
+Context: /plan needs to understand how the project is structured before writing a PRD
+user: Plan a new notifications feature
+agent: Explores module boundaries, entry points, and existing UI/data patterns, then reports file paths and architectural findings
+</example>
+<example>
 Context: /tickets re-explores the codebase after reading the PRD to gather fresh implementation context
 user: Create tickets from the latest PRD
 agent: Explores relevant modules and patterns so code-architect agents have accurate codebase context for designing tickets
-</example>
-<example>
-Context: /tickets needs to verify that PRD assumptions match the actual codebase state
-user: The PRD references a telemetry module — does it exist yet?
-agent: Searches for telemetry-related files and reports whether the module exists, plus related patterns
 </example>"
 model: sonnet
 color: yellow

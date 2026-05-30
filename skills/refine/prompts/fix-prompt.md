@@ -16,6 +16,7 @@ Use this template when `/refine` dispatches an implementer subagent for a review
 > {Paste the relevant code — the file content around the finding, enough for the implementer to understand the surrounding logic. Typically 20-40 lines centered on the finding.}
 >
 > ### Your Job
+> The finding was already verified and scored — implement the fix; do not re-litigate whether the finding is valid.
 > 1. **Read** the finding and understand what needs to change.
 > 2. **Implement** the fix. Follow existing codebase patterns.
 > 3. **Verify** — run any relevant checks (typecheck, test, lint) if the finding suggests it.

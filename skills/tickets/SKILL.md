@@ -8,6 +8,14 @@ argument-hint: "Path to PRD (optional — auto-detects most recent)"
 
 You are turning an approved PRD into actionable, AI-ready GitHub Issues. You work through six phases: prerequisites, codebase re-exploration, architecture & decomposition, issue creation, build ordering with wave analysis, and PRD status update. You are mostly autonomous — one approval gate before creating issues.
 
+## Trust the artifact
+
+The PRD and ADRs you were handed are the **approved plan** — its decisions are already made and were already gated. Execute it as written. Do **not** re-derive it, re-validate it, re-confirm it, or re-present it for approval. A check whose normal outcome is "confirmed, proceed as written" is noise — don't run it.
+
+Deviate **only** when faithful execution would *actually break*: a referenced file, symbol, or issue does not exist, or two instructions directly contradict. When you must deviate — **stop, amend the artifact with the reason** (edit it / comment it), then proceed. **Never diverge silently:** a change that isn't written back into the artifact makes the artifact lie, and a lying artifact is worse than none.
+
+The PRD's *what* is settled — your job is the *how*. Fresh codebase exploration is expected; re-opening the plan's decisions is not.
+
 **Initial request:** $ARGUMENTS
 
 ---
@@ -57,7 +65,7 @@ You are turning an approved PRD into actionable, AI-ready GitHub Issues. You wor
 
 **No gate — this phase is autonomous.**
 
-1. Launch 2-3 `codebase-explorer` agents (sonnet, parallel). Use the prompt template from `skills/tickets/references/explorer-prompt.md` — focus agents on areas the PRD touches.
+1. Launch 2-3 `codebase-explorer` agents (sonnet, parallel). Use the prompt template from `skills/tickets/prompts/codebase-explorer-prompt.md` — focus agents on areas the PRD touches.
 
 2. Read only the files where you need more than the explorers already surfaced — the explorers quote the relevant code, so don't re-read wholesale.
 3. Compare exploration findings against the PRD's architecture section:
@@ -70,7 +78,7 @@ You are turning an approved PRD into actionable, AI-ready GitHub Issues. You wor
 
 **Goal:** Design the implementation and break it into right-sized tickets.
 
-1. Launch `code-architect` agents (inherit, parallel). Each agent takes a different epic/feature from the PRD. Use the prompt template from `skills/tickets/references/architect-prompt.md`.
+1. Launch `code-architect` agents (inherit, parallel). Each agent takes a different epic/feature from the PRD. Use the prompt template from `skills/tickets/prompts/code-architect-prompt.md`.
 
 2. Read the agents' findings. Assemble the full breakdown.
 
@@ -126,7 +134,7 @@ Use the real epic/feature names and version from your breakdown; drop the `v{N}`
 
 For each ticket in the approved breakdown:
 
-**Issue body format:** Use the template from `skills/tickets/references/ticket-template.md`.
+**Issue body format:** Use the template from `skills/tickets/formats/ticket-format.md`.
 
 **Issue creation order:**
 1. Create milestone if the PRD warrants one.
@@ -169,89 +177,32 @@ After all issues are created, present a grouped summary with URLs:
 
 **Goal:** Produce a build-order issue so /build knows the implementation sequence and which tickets can execute in parallel.
 
-Using the code-architect findings (file paths, creates/consumes, dependencies, complexity) and the codebase context from Phase 1:
+Produce a **self-contained** build-order issue that `/build` executes without ever re-reading the tickets. Use the exact structure in `${CLAUDE_PLUGIN_ROOT}/skills/tickets/formats/build-order-format.md`. Inputs: the code-architects' **write-sets** (`creates`/`modifies`) and **depends-on** (HARD/SOFT) fields, plus complexity and priority.
 
-1. **Build the dependency graph.** For each ticket, map what it creates and what it consumes. Use the code-architects' Creates/Consumes fields.
+1. **Collect per-ticket data.** For each ticket record: complexity `[S/M/L]`, `depends-on` (HARD only constrains order; SOFT does not), and the **write-set** = `creates ∪ modifies` (exact file paths). A shared *directory* is not a conflict; a shared *file* is.
 
-2. **Sequence tickets.** Apply these rules in order:
-   - HARD dependencies are inviolable — producer before consumer.
-   - Foundational work (types, schemas, shared utilities) before features that use them.
-   - Blockers before important before nice-to-have at the same dependency level.
-   - Tickets touching the same files should be adjacent (reduces context switching).
-   - SOFT dependencies prefer producer-first but can be reordered if it improves grouping.
+2. **Compute file-disjoint waves** (the load-bearing step — `/build` shares ONE working tree across all implementers, so two parallel tickets touching the same file is a silent clobber). Run the algorithm from `build-order-format.md`:
+   - `ready` = tickets whose HARD `depends-on` are all in completed waves.
+   - If `ready` is empty while tickets remain → HARD dependency **cycle**; flag to the user to reclassify one HARD→SOFT.
+   - Fill the wave from `ready` in priority order (blocker > important > nice), adding a ticket **only if its write-set is disjoint from the files already used in this wave**. A ready ticket that shares a file with the wave waits for the next wave.
+   - Repeat until all assigned. Each wave is therefore HARD-dep-free **and** file-disjoint.
+   - **Accepted trade-off:** this can make waves narrower than HARD-dep-only grouping — correct, because determinism + no clobber beats peak parallelism under a shared tree.
 
-3. **Group into PRs.** Group by coupling, not line count:
-   - Tickets sharing a runtime boundary belong in the same PR.
-   - Each PR must be independently reviewable and testable.
-   - Note estimated line count per PR for reference, but do not use it as the grouping criterion.
+3. **Group into PRs** by coupling (shared runtime boundary), not line count. Each PR independently reviewable.
 
-4. **Create the build-order issue.**
-   - Title: `Build Order: [feature/version]`
-   - Labels: `build-order`, version label
-   - Body format:
+4. **Decide scope.** State what to build as a **decision, not an option**: "Build all N. #X is stretch → build unless told otherwise." No open degrees of freedom for `/build` to ask about.
 
-   ```
-   ## Dependency Graph
+5. **Write the verify command.** The exact command `/build` runs at each wave boundary (package-scoped, e.g. `pnpm -F @pkg typecheck && pnpm -F @pkg test`); note any suites deferred to deployment.
 
-   #[number] creates:
-     - [file/pattern] ([description])
+6. **Create the build-order issue** following `build-order-format.md` exactly — header `Plan status: APPROVED — authoritative`, then `## Scope`, `## Verify`, `## Tickets` (with write-sets), `## Parallel Waves` (authoritative), `## Build Sequence` (sequential fallback for fundamental /build), `## PR Grouping`.
+   - Title: `Build Order: [feature/version]`; Labels: `build-order`, version label.
+   - Pin the issue: `gh issue pin [number]`.
 
-   #[number] consumes:
-     - [file/pattern] (from #[source]) [HARD]
-     - [pattern] (from #[source]) [SOFT]
-
-   ## Build Sequence
-
-   1. #[number] — [title] ([complexity], [priority]) — [one-line reasoning]
-   2. #[number] — [title] ([complexity], [priority]) — [one-line reasoning]
-
-   ## PR Grouping
-
-   PR 1: #[number] + #[number]
-     Coupling: [shared runtime boundary rationale]
-     Independently reviewable: yes — [reason]
-
-   ## Flags
-
-   - [reorderable pairs, independent tickets, or other sequencing notes]
-   ```
-
-   - Pin the issue: `gh issue pin [number]`
-
-5. **Wave analysis.** Using the dependency graph from step 1, group tickets into parallel execution waves. The goal is to identify which tickets can be implemented simultaneously because they have no HARD dependencies between them and touch different files.
-
-   Wave computation — work through the dependency graph level by level:
-   - **Wave 1:** All tickets with zero HARD incoming dependencies. These have no blockers and can all execute in parallel.
-   - Remove Wave 1 tickets from the graph. **Wave 2:** All tickets that now have zero remaining HARD incoming dependencies — their blockers were all in Wave 1.
-   - Continue removing completed waves and collecting newly unblocked tickets until every ticket is assigned to a wave.
-   - If tickets remain but none have zero incoming dependencies, the HARD dependency declarations contain a circular reference. Flag this to the user — they need to break the cycle by reclassifying one HARD dependency as SOFT.
-
-   SOFT dependencies do not create ordering constraints. Two tickets connected only by a SOFT dependency can appear in the same wave. Within each wave, tickets are unordered — /build dispatches them all in parallel.
-
-   Append a `## Parallel Waves` section to the build-order issue body, after `## Flags`:
-
-   ```
-   ## Parallel Waves
-
-   Wave 1: #[number], #[number], #[number]
-     No HARD dependencies between them. Execute in parallel.
-
-   Wave 2: #[number], #[number]
-     Depends on Wave 1 completing. Execute in parallel.
-
-   Wave 3: #[number]
-     Depends on Wave 2 completing.
-
-   Parallelism: [X] of [Y] tickets can run in parallel ([Z]%)
-   ```
-
-   The `## Build Sequence` section remains as-is — it serves as the sequential fallback for the fundamental plugin's `/build`, which does not read the Parallel Waves section.
-
-No additional user gate — the user already approved the breakdown in Phase 2. The build order and wave analysis are a deterministic consequence of that breakdown.
+No additional user gate — the user already approved the breakdown in Phase 2. The build order is a deterministic consequence of that breakdown.
 
 **Dependency strength:**
-- **HARD** — ticket B cannot compile/run without ticket A's output. Must be sequential.
-- **SOFT** — ticket B works without ticket A's output, but is better/cleaner with it. Can be reordered if needed.
+- **HARD** — ticket B cannot compile/run without ticket A's output. Constrains wave order.
+- **SOFT** — ticket B works without ticket A's output, but is better/cleaner with it. Does not constrain order.
 
 ---
 

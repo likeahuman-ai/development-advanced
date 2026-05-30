@@ -14,13 +14,12 @@ Use this template when dispatching `code-architect` agents. Launch one per epic/
 >
 > ### Architectural Decisions (ADRs)
 > [Paste ADR content if `.adr/ADR.md` exists, otherwise omit this section]
-> These are constraints from the planning phase. Your implementation design must respect these decisions. If an edge case conflicts with an ADR, flag it rather than silently contradicting the decision.
+> These are constraints from the planning phase. Treat the PRD section and ADRs as settled constraints — design within them. If an edge case conflicts with an ADR or the PRD, flag it rather than silently contradicting the decision.
 >
 > ### Your Job
 > Produce:
-> - **Files to create/modify** with exact paths
-> - **Creates** — new artefacts this ticket introduces (files, patterns, modules, schemas, types)
-> - **Consumes** — artefacts this ticket depends on, each marked HARD (won't compile/run without) or SOFT (works without, better with), referencing the producing ticket
+> - **Write-set** — the exact file paths this ticket will touch, split into `creates` (new files) and `modifies` (existing files changed). This is the file-safety basis for parallel-wave grouping, so be precise and complete — a missed path can cause two parallel implementers to clobber the same file.
+> - **depends-on** — artefacts this ticket needs to exist first, each marked HARD (won't compile/run without) or SOFT (works without, better with), referencing the producing ticket. Ordering only — distinct from the write-set.
 > - **Verifiable requirements** — concrete, testable statements
 > - **Acceptance criteria** — Given/When/Then, edge cases, verification commands
 > - **Constraints** — files/patterns NOT to modify

@@ -10,6 +10,14 @@ You are closing out a development cycle. Phase 1: fix review findings from the P
 
 You are mostly autonomous — one approval gate per phase (which findings to fix, then spec approval).
 
+## Trust the artifact
+
+The review findings you were handed are the **approved plan** — its decisions are already made and were already gated. Execute it as written. Do **not** re-derive it, re-validate it, re-confirm it, or re-present it for approval. A check whose normal outcome is "confirmed, proceed as written" is noise — don't run it.
+
+Deviate **only** when faithful execution would *actually break*: a referenced file, symbol, or issue does not exist, or two instructions directly contradict. When you must deviate — **stop, amend the artifact with the reason** (edit it / comment it), then proceed. **Never diverge silently:** a change that isn't written back into the artifact makes the artifact lie, and a lying artifact is worse than none.
+
+Findings were already scored and filtered — fix them, don't re-adjudicate validity. (The user chooses *which* to fix; that's their gate, not your re-litigation.)
+
 **Initial request:** $ARGUMENTS
 
 ---
@@ -32,7 +40,7 @@ Before reading findings, verify that `/review` has actually run on this PR. The 
 gh pr view [number] --json comments --jq '.comments[].body'
 ```
 
-Parse for structured /review findings using the format in `${CLAUDE_PLUGIN_ROOT}/skills/refine/references/finding-format.md`. Look for the most recent comment matching the format (starts with `### Code Review`).
+Parse for structured /review findings using the format in `${CLAUDE_PLUGIN_ROOT}/skills/refine/formats/finding-format.md`. Look for the most recent comment matching the format (starts with `### Code Review`).
 
 **If no `### Code Review` comment exists on the PR:** This PR hasn't been through `/review` yet. Tell the user: "This PR hasn't been reviewed yet. Run `/review` first — it runs the specialist agents and posts findings to the PR. Then come back to `/refine` to fix them and update the spec." Do not proceed.
 
@@ -65,7 +73,7 @@ Which findings should I fix? (all / numbers / none)
 
 For each selected finding:
 - Read the code context (30-50 lines around the finding)
-- Load `${CLAUDE_PLUGIN_ROOT}/skills/refine/references/fix-prompt.md`
+- Load `${CLAUDE_PLUGIN_ROOT}/skills/refine/prompts/fix-prompt.md`
 - Dispatch implementer (sonnet): finding + context + suggested fix
 - Handle: DONE → next, BLOCKED → report to user and continue
 
@@ -110,7 +118,7 @@ The system has never been documented. Full exploration needed.
    - Explorer results
    - PRD content
    - ADR content
-   - `${CLAUDE_PLUGIN_ROOT}/skills/refine/references/spec-format.md` (template)
+   - `${CLAUDE_PLUGIN_ROOT}/skills/refine/formats/spec-format.md` (template)
    - Instruction: creation mode — fill all 7 sections
 
 ### Update mode (subsequent cycles)
@@ -132,7 +140,7 @@ The spec exists. Use the PR diff to scope what changed.
    - Directory listing
    - package.json
    - ADRs
-   - `${CLAUDE_PLUGIN_ROOT}/skills/refine/references/spec-format.md` (template)
+   - `${CLAUDE_PLUGIN_ROOT}/skills/refine/formats/spec-format.md` (template)
    - Instruction: update mode — only modify sections affected by the diff
 
 ### Review gate
