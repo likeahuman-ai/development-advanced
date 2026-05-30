@@ -108,26 +108,19 @@ The user must approve the breakdown before you create issues. Ask: "Ready to cre
 
 Check `git remote -v` to get the GitHub repository. Use the `gh` CLI for all GitHub operations.
 
-### Ensure labels exist
+### Create the labels this cycle introduces
 
-Before creating issues, ensure the required labels exist. `gh label create --force` creates a missing label and leaves an existing one intact, so create the whole set in **one** Bash invocation (a loop over the names) rather than `gh label list` followed by a separate create per label:
+The standing labels already exist on the repo and don't change between cycles — priority (`blocker`/`important`/`nice-to-have`/`low`), complexity (`S`/`M`/`L`), type (`bug`/`refactor`/`docs`), `build-order`, and the cycle-enforcement labels (`needs-review`/`needs-refine`/`cycle-complete`). Don't re-create or even list them: it's a round-trip per label that changes nothing on an established repo.
 
-**Hierarchy:** `epic:{name}`, `feature:{name}`
-**Priority:** `blocker`, `important`, `nice-to-have`, `low`
-**Version:** `v1`, `v2`, `v3`, etc.
-**Type:** `bug`, `refactor`, `docs`
-**Complexity:** `S`, `M`, `L`
-**Workflow:** `build-order`
-**Cycle enforcement:** `needs-review`, `needs-refine`, `cycle-complete`
+The only labels a cycle introduces are the hierarchy labels `epic:{name}` / `feature:{name}` and the version label `v{N}` when the version is new. Create just those, with a curated colour and description so they match the existing set (`--force` keeps a re-run idempotent):
 
 ```bash
-for name in blocker important nice-to-have low \
-            v1 bug refactor docs S M L \
-            build-order needs-review needs-refine cycle-complete; do
-  gh label create "$name" --force >/dev/null 2>&1 || true
-done
-# Add the epic:NAME / feature:NAME and any extra version labels to the loop, using the actual names from your breakdown.
+gh label create "epic:checkout" --color 5319E7 --description "Epic: checkout flow" --force
+gh label create "feature:cart"  --color FEF2C0 --description "Feature: cart"        --force
+gh label create "v8"            --color 0E8A16 --description "V8 — Checkout & Cart" --force
 ```
+
+Use the real epic/feature names and version from your breakdown; drop the `v{N}` line if that version label already exists.
 
 ### Create issues
 
@@ -276,5 +269,5 @@ After all issues are created and the build-order issue is pinned, update the PRD
 - **Acceptance criteria are testable**, not subjective.
 - **Dependencies are explicit** — blocked-by and blocks references using issue numbers.
 - **Complexity is AI resource cost** (S/M/L), never time estimates.
-- **Batch reads, sequence writes** — create labels in one looped invocation (idempotent, no cross-references), but create issues one `gh issue create` call at a time so you can thread numbers between calls and fail safely; never bundle the creates into a script. Reuse the PRD/ADR content you already read instead of re-querying. macOS/BSD-portable shell only.
+- **Batch reads, sequence writes** — create only the new epic/feature/version labels (idempotent, no cross-references), but create issues one `gh issue create` call at a time so you can thread numbers between calls and fail safely; never bundle the creates into a script. Reuse the PRD/ADR content you already read instead of re-querying. macOS/BSD-portable shell only.
 - **Wave analysis enables parallel execution** — tickets in the same wave have no HARD dependencies between them and can be implemented simultaneously by /build.
