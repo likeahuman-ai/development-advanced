@@ -223,12 +223,14 @@ All architectural decisions for this project. One decision per section, numbered
 
 ## Phase 5: Handoff
 
-> "PRD and ADRs are committed. Run `/tickets` when you're ready to break this into implementable work."
+The PRD and ADRs are committed. Because you still hold the Phase 2 codebase exploration in context, the fastest path is to **ticket in this same session** — `/tickets` will detect the retained map and skip its own cold re-exploration. Offer it:
 
-Present a brief summary of what was captured:
+> "PRD and ADRs are committed, and I've still got the codebase map loaded from planning. Run `/tickets` now in this session and it'll reuse that exploration instead of starting cold. Ready?"
+
+Then present a brief summary of what was captured:
 - PRD: what's being built
 - ADRs: key decisions (just titles)
-- Next step: /tickets
+- Next step: `/tickets` — same session reuses this exploration (no cold re-explore); a fresh session re-derives context from the spec or a cold sweep
 
 ---
 

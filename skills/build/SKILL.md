@@ -194,43 +194,46 @@ Run `git log --oneline` and confirm that commits from all successfully completed
 
 **Residual collision guard (gates on real data, not prediction).** The waves were computed file-disjoint, but an implementer may have touched a file outside its declared write-set. Intersect the **actual** files each wave-commit changed: `git show --name-only --format= <sha>` per commit, and check for any path that appears in two commits from this wave. If two commits hit the same file, flag a possible clobber to the user (the earlier write may have been overwritten) before proceeding. Act only if a real collision is found — do not re-investigate the predicted write-sets.
 
-### Step 4.6: Full-workspace verification
+### Step 4.6 + Step 5: Verify the workspace and spec-review — in parallel
 
-Implementers verify only their own package (parallel-safe, fast — see the implementer prompt). Cross-package breakage — a change in package A that breaks package B — is caught here, once, after the wave's commits have landed and the tree has settled.
+Full-workspace verification and spec-review are **independent**: spec-review reads the committed code against each ticket's spec and does not depend on the build passing. So dispatch them **together in one parallel message**, immediately after Step 4.5 confirms commits landed. Do not serialise verify → spec-review.
 
-Use the **exact command from the build-order's `## Verify` section** — `/tickets` already chose it (package-scoped, with any deployment-deferred suites noted). Do not re-derive it. Then dispatch a single verification subagent via the Agent tool — the orchestrator must not run project commands itself:
+**Full-workspace verification** catches cross-package breakage — a change in package A that breaks package B — once, after the wave's commits have landed and the tree has settled (implementers verify only their own package; see the implementer prompt). Use the **exact command from the build-order's `## Verify` section** — `/tickets` already chose it (package-scoped, deployment-deferred suites noted). Do not re-derive it.
 
-```
-Agent tool call:
-  description: "Verify workspace after Wave [N]"
-  model: "sonnet"
-  prompt: "Run exactly this at the repo root: `<the command you chose>`. Report PASS, or FAIL with the exact failing package, command, and error output. Do not fix anything — only report."
-```
+**Spec-review** confirms each ticket met its spec. Use the prompt template from `skills/build/prompts/spec-reviewer-prompt.md`; paste the ticket spec and implementer report into each prompt. Spec reviewers read the actual changed code — they do not trust the implementer's self-report.
 
-- **PASS** → proceed to spec review.
-- **FAIL** → this is a real integration break (the whole workspace assembled), not a parallel-execution artefact. Re-dispatch the implementer(s) for the package(s) at fault with the error output (same dispatch as Step 3), wait for their commits to land (re-run the Step 4.5 `git log` check), then re-run **this** step. Max 2 re-dispatches here; if it still fails, escalate to the user. Only proceed to Step 5 once this verification PASSes. (This is its own loop — separate from the spec-review fix loop in Step 6.)
-
-This runs once per wave, not once per ticket — one full-workspace build per wave, and reliable because the tree is no longer being mutated.
-
-### Step 5: Dispatch spec-reviewers in parallel
-
-After ALL implementers have returned and commits are verified, dispatch spec reviewers for all successful tickets in a **single message with multiple Agent tool calls**:
+Dispatch all of these in a **single message** (the orchestrator must not run project commands itself):
 
 ```
 Agent tool calls (all in one message for parallel execution):
 
-  Agent 1:
+  Verify:
+    description: "Verify workspace after Wave [N]"
+    model: "haiku"
+    prompt: "Run exactly this at the repo root: `<the command from ## Verify>`. On PASS, report PASS. On FAIL, paste the failing package, the exact command, and its raw error output verbatim — do not summarise, and do not fix anything."
+
+  Spec review 1:
     description: "Spec review #[number] (Wave [N])"
     model: "sonnet"
     prompt: [spec reviewer prompt for ticket 1]
 
-  Agent 2:
+  Spec review 2:
     description: "Spec review #[number] (Wave [N])"
     model: "sonnet"
     prompt: [spec reviewer prompt for ticket 2]
 ```
 
-Use the prompt template from `skills/build/prompts/spec-reviewer-prompt.md`. Paste the ticket spec and implementer report into each Agent prompt. Spec reviewers must read the actual changed code — they do not trust the implementer's self-report.
+The verify subagent is **Haiku**: its job is purely to run a pre-chosen command and report PASS/FAIL verbatim — no reasoning — so the fastest tier is correct, and the hardened prompt (verbatim error paste) keeps the failure signal intact.
+
+Collect all results, then handle the two streams independently:
+
+**Verification:**
+- **PASS** → nothing more to do for the build itself.
+- **FAIL** → a real integration break (the whole workspace assembled), not a parallel-execution artefact. Re-dispatch the implementer(s) for the package(s) at fault with the raw error output (same dispatch as Step 3), wait for their commits to land (re-run the Step 4.5 `git log` check), then re-dispatch a **single Haiku verify subagent** (same as above). Max 2 re-dispatches here; if it still fails, escalate to the user. The wave is **not complete** until verification PASSes. (This is its own loop — separate from the spec-review fix loop in Step 6.)
+
+This verification runs once per wave, not once per ticket — one full-workspace build per wave, and reliable because the tree is no longer being mutated.
+
+**Spec-review** → proceed to Step 6 (fix loop) with the per-ticket results.
 
 ### Step 6: Fix loop (per-ticket)
 

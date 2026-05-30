@@ -59,16 +59,21 @@ The PRD's *what* is settled — your job is the *how*. Fresh codebase exploratio
 
 ---
 
-## Phase 1: Codebase Re-exploration
+## Phase 1: Codebase Context
 
-**Goal:** Get fresh codebase context. The PRD may have been written days ago — the code may have changed.
+**Goal:** Have accurate codebase context for the areas the PRD touches. How you get it depends on what's already available — use the cheapest tier that's sound. **No gate — this phase is autonomous.**
 
-**No gate — this phase is autonomous.**
+Pick the **first** tier that applies:
 
-1. Launch 2-3 `codebase-explorer` agents (sonnet, parallel). Use the prompt template from `skills/tickets/prompts/codebase-explorer-prompt.md` — focus agents on areas the PRD touches.
+**Tier A — exploration already in context (combined plan→tickets session).** If `/plan` just ran in this same session, you already hold its Phase 2 codebase map (architecture, patterns, integration points) in this conversation. **Reuse it — do NOT dispatch explorer agents.** The code cannot have changed since planning seconds ago, so re-exploring is pure waste. Go straight to Phase 2 with the retained findings.
 
-2. Read only the files where you need more than the explorers already surfaced — the explorers quote the relevant code, so don't re-read wholesale.
-3. Compare exploration findings against the PRD's architecture section:
+**Tier B — fresh session, `.spec/spec.md` exists.** Read the spec first — it IS the system map (maintained by `/refine`). Scope `codebase-explorer` agents (sonnet, parallel) to **only** the modules this PRD touches that the spec does not already describe; skip the Architecture-Mapping mode the spec already covers. If the spec was committed before recent code landed, re-explore any touched path with new commits since the spec's commit.
+
+**Tier C — fresh session, no spec (first cycle).** Launch 2-3 `codebase-explorer` agents (sonnet, parallel) for the full 3-mode sweep. Use the prompt template from `skills/tickets/prompts/codebase-explorer-prompt.md` — focus agents on areas the PRD touches.
+
+Then, regardless of tier:
+- Read only the files where you need more than the explorers already surfaced — the explorers quote the relevant code, so don't re-read wholesale.
+- Compare context against the PRD's architecture section:
    - **Consistent** → proceed silently.
    - **Contradiction** → flag to user. The PRD has priority unless the code reveals an anti-pattern the PRD didn't account for.
 

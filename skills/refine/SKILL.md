@@ -67,17 +67,17 @@ Which findings should I fix? (all / numbers / none)
 
 **Gate:** User selects. "none" → skip to Phase 2.
 
-### 5. Dispatch fixes
+### 5. Dispatch fixes (batched + parallel)
 
 **You are the orchestrator, NOT the fixer.** Each fix gets a subagent.
 
-For each selected finding:
-- Read the code context (30-50 lines around the finding)
-- Load `${CLAUDE_PLUGIN_ROOT}/skills/refine/prompts/fix-prompt.md`
-- Dispatch implementer (sonnet): finding + context + suggested fix
-- Handle: DONE → next, BLOCKED → report to user and continue
+First, **batch all the reads**: in a single message, read the code context (30-50 lines) for every selected finding at once. When several findings cluster in one file, read that file once rather than per-finding.
 
-### 5. Commit and push
+Then **dispatch all fix implementers in one parallel message** (sonnet) — the same shape `/build` uses for a wave — instead of read-then-dispatch one finding at a time. Each implementer gets the finding, its code context, and the suggested fix, via `${CLAUDE_PLUGIN_ROOT}/skills/refine/prompts/fix-prompt.md`.
+
+Collect results: DONE → done; BLOCKED → report to user and continue with the rest. **File safety:** if two findings touch the same file, hand both to a single implementer so parallel fixes don't clobber each other.
+
+### 6. Commit and push
 
 ```bash
 git add [fixed files]

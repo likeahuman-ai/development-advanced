@@ -24,7 +24,7 @@ Detect hardcoded secrets, real personal data, user data flowing to observability
 
 ## What to Look For
 
-See `security-detection-guide.md` for full heuristics, confidence calibration, and code examples. Below is a summary of each category.
+The orchestrator injects the full detection heuristics, confidence calibration, and PII taxonomy into your prompt at dispatch. Below is a summary of each category.
 
 ### SECRET — hardcoded credentials
 
