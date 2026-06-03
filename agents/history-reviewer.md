@@ -2,7 +2,7 @@
 name: history-reviewer
 description: "Uses git blame, history, and previous PR review comments to find fragile code — lines with high churn, repeated fixes, conflicting changes, or recurring review feedback. Runs when modified lines have 3+ changes in recent history.
 <example>
-Context: /review detects that modified lines have been changed frequently in recent commits
+Context: /sprint-review detects that modified lines have been changed frequently in recent commits
 user: Review PR #42
 agent: Runs git blame on changed regions, finds that the install retry logic has been patched 5 times in 3 weeks, flags it as a fragility hotspot
 </example>
@@ -29,7 +29,7 @@ For files modified in the PR, check git history on the changed lines and review 
 
 ## How to Analyze
 
-**Batch your shell calls.** The git and gh queries below are independent reads — issue them in as few Bash invocations as possible (chain with `;`, separate output with `echo "=== label ==="` headers) rather than one call per file or per PR. Each separate Bash call is a round-trip with shell-spawn overhead. Use only macOS/BSD-portable commands — no GNU-only flags (`find -printf`, `grep -P`, `sed -i` without a backup suffix); participants are often on macOS.
+**Batch your shell calls.** The git and gh queries below are independent reads — issue them in as few Bash invocations as possible (chain with `;`, separate output with `echo "=== label ==="` headers) rather than one call per file or per PR. Each separate Bash call is a round-trip with shell-spawn overhead. Use only macOS/BSD-portable commands — no GNU-only flags (`find -printf`, `grep -P`, `sed -i` without a backup suffix); users are often on macOS.
 
 ### 1. Identify changed files and line ranges
 Read the PR diff to know exactly which files and lines changed.

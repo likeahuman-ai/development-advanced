@@ -1,7 +1,7 @@
 {
   "name": "development-advanced",
-  "version": "0.7.0",
-  "description": "Advanced dev workflow — /plan (+ ADRs) /tickets /build /review /refine (+ spec)",
+  "version": "1.0.0",
+  "description": "Advanced dev workflow — /sprint-plan (+ ADRs) /sprint-tickets /sprint-build /sprint-review /sprint-refine (+ spec)",
   "author": {
     "name": "LikeAHuman.ai",
     "email": "academy@likeahuman.ai",

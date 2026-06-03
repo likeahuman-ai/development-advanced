@@ -2,7 +2,7 @@
 name: silent-failure-hunter
 description: "Hunts for swallowed errors, empty catch blocks, and silent failures in PR diffs. Runs when error handling code changed.
 <example>
-Context: /review detects try/catch blocks or error handling in the changed files
+Context: /sprint-review detects try/catch blocks or error handling in the changed files
 user: Review PR #42
 agent: Finds an empty catch block that swallows a network error, leaving the user with no feedback when the install fails silently
 </example>
@@ -54,8 +54,6 @@ Find places in the PR diff where errors are caught but not handled, operations c
 ## Boundaries
 
 **↔ code-quality-reviewer (error handling):** You flag error handling that is *meaningless* — empty catches, swallowed errors, fire-and-forget without feedback. You do NOT judge structural correctness of try/catch scope or whether errors are re-thrown appropriately — that's code-quality-reviewer's domain. When a catch block is both structurally wrong and empty, both agents report — yours focuses on the silent failure, theirs on the structural bug.
-
-**↔ flow-tracer (async error paths):** You flag error handling quality in async code — unhandled rejections, `.catch(() => {})`, missing error callbacks. You do NOT trace state lifecycle across async boundaries or reason about ordering — that's flow-tracer's domain. When an async error path both silently swallows (your finding) and causes a state leak across handlers (their finding), both agents report their respective concerns.
 
 ## Output
 
