@@ -1,43 +1,17 @@
-# Code Architect Prompt Template
+# code-architect-prompt
 
-Use this template when dispatching `code-architect` agents. Launch one per epic/feature from the Sprint Plan.
+Prepared at sprint-tickets 2.2.1, dispatched at 2.2.2 — one `code-architect` per epic/feature, in parallel. The agent owns the design method and the seam discipline; this prompt only hands over the slice of 2.0 + 2.1 the session already holds. Pointers + boundaries, not a code dump.
 
-## Prompt
+Fill the `{…}` seed and send:
 
-> Design the implementation for [EPIC/FEATURE NAME].
+> Design the tickets for the **{epic title}** epic.
 >
-> ### Sprint Plan Slice
-> [Paste the Architecture shape-of-change pointer for this epic/feature — the 2-3 line "shape of the change" from the Sprint Plan, NOT a full architecture block]
+> - **Epic scope:** {the epic's `.sprint` detail + the `US-###` slice it serves + the success metric — from the 2.0 plan read}
+> - **Governing ADR Y-statement(s):** {paste the Y-statement verbatim for each `.adr` record that governs this epic — the blockquote line only, per `adr-format`; the Y-statement is the only part lifted verbatim, IDs travel as `ADR-###` pointers}
+> - **Module map:** {the modules this epic touches, from 2.1.1's exploration}
+> - **Shared-seam assignments:** {name each shared seam this epic touches and its single owner — e.g. `payment-gateway` → owned by the "Payment setup" epic; omit if this epic touches none}
+> - **Spec slice:** {the `.spec/spec.md` anchors for the touched modules — pointers only, e.g. `#api-surface`, `#crosscutting-concepts--patterns`; read the spec yourself, per `spec-format`. Omit if no `.spec`}
 >
-> ### Spec Slice
-> [Paste only the touched-module sections of `.spec/spec.md` — the relevant Architecture / Data Model / API Surface entries plus the "Crosscutting Concepts & Patterns" section (auth, error-handling, logging, glossary/naming). Omit untouched modules. Skip if `.spec/spec.md` is absent.]
->
-> ### Codebase Exploration Findings
-> [Paste relevant findings from the codebase-explorer agents]
->
-> ### Architectural Decisions (ADRs)
-> [Paste the Y-statement of each governing ADR if `.adr/ADR.md` exists, otherwise omit this section]
-> These are constraints from the planning phase. Treat the Sprint Plan slice, the Spec slice, and the ADR Y-statements as settled constraints — design within them. If an edge case conflicts with an ADR, the Spec, or the Sprint Plan, flag it rather than silently contradicting the decision.
->
-> ### Your Job
-> Produce, per ticket:
-> - **US-### back-ref** — the user story (or stories) this ticket serves, by stable ID (e.g. `US-001`).
-> - **Spec pointer** — the spec section this ticket implements against, as an anchor (`.spec/spec.md#anchor`).
-> - **Governing-ADR pointer** (optional) — the ADR Y-statement that constrains this ticket, if one applies.
-> - **epic** — the epic/feature this ticket belongs to.
-> - **Write-set** — the exact file paths this ticket will touch, split into `creates` (new files) and `modifies` (existing files changed). This is the file-safety basis for parallel-wave grouping, so be precise and complete — a missed path can cause two parallel implementers to clobber the same file.
-> - **depends-on** — artefacts this ticket needs to exist first, each marked HARD (won't compile/run without) or SOFT (works without, better with), referencing the producing ticket. Ordering only — distinct from the write-set.
-> - **Acceptance criteria** — Given/When/Then by default; add OPTIONAL EARS (While/Where/If-then SHALL) only for conditional or stateful behaviour. Never make EARS mandatory.
-> - **Complexity estimate** — S (single agent context, few files), M (full session, multiple files), L (multiple sessions, many systems).
->
-> Do NOT produce per-ticket verification commands — verification is centralized in the build-order's single authoritative `## Verify` section.
->
-> Complexity indicates AI resource cost, not human time.
+> Report your ticket-sized units back for consolidation at 2.3.1 — the design lives in your report, no design-doc file.
 
-## Anti-bloat
-
-The design you produce lives in your returned findings and in the GitHub Issues themselves. Do NOT write a design-doc file. There is no per-cycle design document — the Issues are the durable record.
-
-## Usage
-
-Replace `[EPIC/FEATURE NAME]` and paste the Sprint Plan slice (the architecture shape-of-change pointer), the touched-module Spec slice, and exploration findings. Each agent gets one epic or feature — don't overload a single agent with the entire Sprint Plan.
+A seam owned elsewhere is named as data here; the agent applies its own rule (consume as given, flag don't fork). Greenfield or pre-migration: drop the ADR and Spec lines — the agent designs from the epic scope and the code alone.

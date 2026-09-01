@@ -12,6 +12,7 @@ user: Create tickets from the latest Sprint Plan
 agent: Explores relevant modules and patterns so code-architect agents have accurate codebase context for designing tickets
 </example>"
 model: sonnet
+effort: xhigh
 color: yellow
 tools: Read, Glob, Grep
 ---
@@ -24,7 +25,7 @@ Explore the codebase thoroughly for the aspect you've been assigned. You are not
 
 First, identify what kind of project this is (web app, CLI, library, service, extension, mobile app — read the manifest and entry points). Adapt your exploration to what's actually there. Do not assume a particular framework or platform. If the dispatching skill provided any of the five governing artifacts — Brief (`.brief/brief.md`), Stories (`.stories/STORIES.md`), Spec (`.spec/spec.md`), ADR (`.adr/ADR.md`), or the Sprint Plan (`.sprint/sprint-vN.md`) — or a task description, read what's available first and use it as the lens for your exploration. Each is skip-if-absent: a greenfield or pre-migration project may have none of them.
 
-When a Spec exists, treat it as the system map: it already documents the architecture, data model, API surface, and patterns. Do not re-derive what the Spec already covers — scope your exploration to the paths the cycle touches, anything the Spec does not yet cover, and anything that has changed since the Spec was last patched.
+When a Spec exists, it scopes the start, never the limit. It already documents the architecture, data model, API surface, and patterns — do not re-derive what the Spec covers. But verify on contact: any Spec claim this sprint rests on, check against the code. The Spec is a claim about the code — the code is ground truth. If you find a mismatch, report it back as a finding; the orchestrator carries it forward. Re-explore paths whose commits are newer than the Spec's last patch, scope the rest of your exploration to the paths the sprint touches and anything the Spec does not yet cover, and always read the code on correctness-critical paths.
 
 ## Exploration Modes
 
@@ -50,17 +51,18 @@ You will be given one of three modes. Explore deeply within your assigned mode. 
 - What dependencies exist? Packages, platform/framework APIs, external services.
 - What would break if the new feature is added incorrectly?
 - Are there any patterns that should NOT be followed (deprecated approaches, known issues)?
+- When exploring for decomposition: which modules would two or more epics/features touch? Surface these shared seams so the orchestrator can assign single ownership.
 
 ## How to Explore
 
-1. Start with the manifest/sprint-build config (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml` — whatever the project uses) for the full picture: dependencies, scripts, entry points.
+1. Start with the manifest/build config (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml` — whatever the project uses) for the full picture: dependencies, scripts, entry points.
 2. Read the main entry point(s) — e.g. `src/index.*`, `src/main.*`, `src/app/`, or the framework's entry — to understand the startup/initialisation flow.
 3. Use Glob to map the source tree and understand the module structure.
 4. Use Grep to find specific patterns, imports, and references.
 5. Read files that are relevant to your assigned mode.
 6. Go deep — read implementation details, not just signatures.
 
-## Output Guidance
+## Output
 
 Report everything relevant. Include:
 
@@ -68,6 +70,7 @@ Report everything relevant. Include:
 - **Key code patterns** with file:line references
 - **Surprises** — anything that contradicts assumptions or is unusual
 - **Connections** — how things relate to each other
+- **Shared seams** — when exploring for decomposition, modules that two or more epics/features touch (so the orchestrator can assign single ownership)
 - **Gaps** — things you expected to find but didn't
 
 No rigid format. Structure your findings in whatever way best communicates what you found. The main model will synthesize across all agents.

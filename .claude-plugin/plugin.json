@@ -1,7 +1,7 @@
 {
   "name": "development-advanced",
-  "version": "1.0.0",
-  "description": "Advanced dev workflow — /sprint-plan (+ ADRs) /sprint-tickets /sprint-build /sprint-review /sprint-refine (+ spec)",
+  "version": "2.0.0",
+  "description": "Team-grade dev workflow on plain git — /sprint-plan (+ ADRs) /sprint-tickets /sprint-build (parallel waves) /sprint-review /sprint-refine (+ spec, rebase-land on a shared trunk)",
   "author": {
     "name": "LikeAHuman.ai",
     "email": "academy@likeahuman.ai",
@@ -9,6 +9,5 @@
   },
   "homepage": "https://github.com/likeahuman-ai/development-advanced",
   "repository": "https://github.com/likeahuman-ai/development-advanced",
-  "license": "MIT",
-  "skills": "./skills/"
+  "license": "MIT"
 }

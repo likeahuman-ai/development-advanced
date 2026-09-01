@@ -1,60 +1,96 @@
-# Implementer Prompt Template
+# implementer-prompt
 
-Use this template when `/sprint-build` dispatches an implementer subagent for a ticket.
+The dispatch brief for an `implementer`. **Mode A** (per-ticket build) is dispatched as the **`implementer` custom subagent** (`agents/implementer.md`), whose frontmatter carries `isolation: worktree` + `effort`: the agent file owns the *execution environment* (isolation, effort, model floor) so it is deterministic per spawn; this brief owns the *whole task contract*, stated in full (the agent body deliberately defers here rather than restating it). The session writes one brief per ticket (Build 3.2.1), injects the per-ticket seed into the slots, and dispatches at 3.2.2. **Mode B — the solo-heal variant** (second mode, below) is the exception: it fires at 3.2.4 when cherry-picking a ticket halts on a same-line conflict, and is dispatched as a **general-purpose subagent on the main tree** — no agent file, no worktree, no isolation.
 
-## Prompt
+Reference formats by name — `commit-format`, `adr-format` — never restate them here.
+
+---
+
+## Mode A — Worktree dispatch (3.2.2, one per ticket)
 
 > ## Implement: [TICKET TITLE]
 >
-> ### Ticket
-> [Paste full ticket body — objective, context, requirements, acceptance criteria, constraints, dependencies]
+> Build this one ticket to a green run of the sprint's gate script. You write code; you do **not** commit anything, and you produce no diff — the session collects your work itself.
 >
-> ### Context
-> This is Wave [W] of [TOTAL_WAVES]. You are implementing ticket [M] of [TOTAL_IN_WAVE] in this wave. All prior waves are committed and visible in the working tree. Do NOT assume other tickets in this wave are complete — they may be executing in parallel. Prior waves completed: [list wave summaries with ticket titles].
+> ### Ticket — the plan
+> [Full ticket body: objective · requirements · acceptance criteria · constraints · dependencies.]
 >
-> ### Spec slice (read-only context)
+> The ticket is the plan — execute it exactly as written. Do not re-design, re-scope, or re-confirm it; start immediately. Stop only if faithful execution is *impossible* — a file, symbol, or dependency the ticket names does not exist, or two requirements directly contradict. A question whose answer is "yes, as the ticket says" is noise.
+>
+> ### Spec slice — read-only context
 > {{spec_slice}}
 >
-> ### Governing ADR (if any)
+> Describes the surrounding system. It is context, not a target — do **not** edit the spec (spec updates happen later, at `/sprint-refine`). If the slot is empty, ignore it.
+>
+> ### Governing ADR — binding constraint
 > {{governing_adr}}
 >
-> **Note — enrichment reproduced inline here on purpose.** This dispatch payload is the *one exception* to the artifact "reference, don't reproduce" rule. The spec slice and ADR Y-statement above are pasted in full because this prompt is ephemeral — the orchestrator enriches it fresh at dispatch and it is NEVER stored in the GitHub Issue. The reference-not-reproduce rule governs durable artifacts, not this transient dispatch prompt. If either slot is empty, ignore it.
+> The governing `.adr` Y-statement, lifted verbatim (`adr-format`). It is standing law for this ticket — honour it, do not contradict it. If the slot is empty, the ticket names no ADR; ignore it.
 >
-> ### Authority: ticket is the plan, spec is context
-> The **ticket is the plan to implement** — execute it exactly as written. Do not re-design, re-scope, or re-confirm it. Start immediately. The **spec slice** above is read-only context that describes the surrounding system; do NOT edit the spec here (spec updates happen later, at `/sprint-refine`). The **ADR Y-statement** above is a binding architectural constraint — honour it, do not contradict it. Stop only if faithful execution is *impossible*: a file, symbol, or dependency the ticket references does not exist, or two requirements directly contradict — then report NEEDS_CONTEXT with the specific blocker. A question whose answer is "yes, as the ticket says" is noise; don't ask it.
->
-> ### Coding Standards
->
+> ### Coding standards
 > {{coding_standards}}
 >
-> If coding standards are provided above, follow them. They reflect the user's own conventions. If the slot is empty, follow existing codebase patterns only.
+> The user's own conventions, if installed. Follow them. If the slot is empty, follow existing codebase patterns only.
 >
-> ### Your Job
-> 1. **Implement** the ticket spec exactly. Follow existing codebase patterns and any coding standards above.
-> 2. **Write tests** if the ticket includes test-related acceptance criteria.
-> 3. **Verify** — run the verification commands from the build-order's single authoritative `## Verify` section (tickets no longer carry their own `pnpm` commands), **scoped to the package you changed** (e.g. `pnpm --filter <package> test`, `pnpm --filter <package> typecheck`, or `pnpm --filter <package> exec tsc --noEmit`). Do NOT run workspace-wide checks: in a parallel wave, sibling tickets are mutating other packages at the same time, so a root-level `pnpm test`/`typecheck` would be both slow and unreliable. The orchestrator runs one full-workspace verification at the wave boundary.
-> 4. **Commit** — granular commits per logical unit. Good commit messages.
->    - If a commit fails (pre-commit hook, lint, formatting), fix the issue and retry ONCE. If the second commit also fails, report BLOCKED with the exact error. Do not retry further.
-> 5. **Self-review** — before reporting, review your own work:
->    - Did you implement everything in Requirements?
->    - Did you meet all Acceptance Criteria?
->    - Did you respect all Constraints?
->    - Did you overbuild anything not requested?
-> 6. **Report** your status:
->    - **DONE** — all requirements met, tests pass, self-review clean
->    - **DONE_WITH_CONCERNS** — implemented but [specific concerns]
->    - **NEEDS_CONTEXT** — need clarification on [specific question]
->    - **BLOCKED** — cannot proceed because [specific blocker]
+> ### Your working copy — the standing contract
+> You are working in a fresh, isolated copy of the repository (your shell's working directory) — a linked git worktree of the team repository.
+>
+> - **Never run git. Never commit.** You are hands, not author. Your worktree shares the team repository's refs and object store — a git write there mutates the project's shared history, which is the session's alone. Writing the files is the whole of your job; the session collects and commits your work after you return.
+> - **Build-needed config first, if listed.** Your worktree checks out only tracked files, so gitignored config a build needs is absent:
+>
+>   {{config_files}}
+>
+>   Copy each listed file (absolute source path in the main checkout) into the same relative path in your working copy — plain file copies. If the slot is empty, skip this.
+> - **It ships no project dependencies.** Run the **provision** command first, every time — never lean on a dependency tree that leaked from the parent (fragile, and unsound the moment the ticket changes a dependency):
+>
+>   provision:
+>   {{provision_command}}
+>
+> - **The gate is the sprint's script.** Your machine-acceptance check is one command, already in your tree (the sprint's founding commit put it there):
+>
+>   ./scripts/t0.sh
+>
+>   Re-run it mid-turn as often as helps you (voluntary, bounded by sense); the run that matters is your last. The script is **not yours to edit** — it is frozen for the sprint, and a diff on `scripts/t0.sh` fails your collection, because that file belongs to no ticket. When it reds, fix your code, never the script.
+> - **Green to report.** `./scripts/t0.sh` must pass before you report. A red gate is not a finished ticket.
+>
+> ### What you return
+> 1. **Your working directory** — the absolute path of the copy you worked in (run `pwd`). The session needs it to collect your changes.
+> 2. **A summary** — what you built and a suggested commit subject (plus a body only if a change-local "why" needs one; shape per `commit-format`). Do **not** add trailers — the session adds them. Do **not** paste a diff.
+> 3. **Your status** — exactly one:
+>    - **SUCCESS** — requirements met, the gate script green, self-review clean.
+>    - **NEEDS_CONTEXT** — execution is blocked on a specific missing fact (name it).
+>    - **BLOCKED** — a referenced file/symbol/dependency does not exist, or two requirements contradict (name it). A red gate run you cannot resolve is BLOCKED, not SUCCESS.
+>
+> Before you report, check your own work against the ticket: every requirement built, every acceptance criterion met, every constraint respected, nothing built that wasn't asked for.
+>
+> ### What the session does after you
+> Using your reported working directory, the session commits your tree inside the worktree (your suggested subject, its own trailers) and cherry-picks that commit onto the integration branch, then completes the wave's checks. You never push, never commit, never run git, and never produce a diff.
 
-## Model Selection
+---
 
-- **S** (small) → sonnet
-- **M** (medium) → sonnet
-- **L** (large) → inherit (Opus)
+## Mode B — Solo-heal variant (3.2.4, same-line conflict)
 
-## Handling Results
+Fires only when cherry-picking a collected ticket halted on a same-line conflict — the session holds the halted operation. This mode runs on the **main tree, not a worktree** — there is no provision, no fresh gate run, and **nothing to return but status**. The task is to resolve conflict markers, nothing more.
 
-- **DONE** → proceed to spec review
-- **DONE_WITH_CONCERNS** → assess concerns, then proceed to spec review
-- **NEEDS_CONTEXT** → provide context, re-dispatch same model
-- **BLOCKED** → provide more context, escalate model, break ticket down, or escalate to user
+> ## Resolve conflict: [TICKET TITLE / CONFLICTED AREA]
+>
+> A cherry-pick is halted on a conflict — two changes touched the same lines, and the conflict markers sit in the working tree. Resolve the markers so the result reflects **both** changes' intent. Merge what is there; write no new logic, add no feature, fix no unrelated thing.
+>
+> ### Conflicting intents
+> - **Theirs:** [the already-collected change's intent — one line.]
+> - **Ours:** [this ticket's intent — one line, from the ticket objective.]
+>
+> ### How to work here
+> - You are on the **main tree**, not a worktree. Do **not** provision, do **not** run a fresh gate check, do **not** commit, and do **not** run git — no continue, no abort; the session owns the halted operation and resumes it after you.
+> - Edit the conflicted file(s) **in place** — remove the markers, keep both intents. The session stages your edits and continues the operation.
+> - You never see the commit message and never touch it — the message and its trailers ride the continued operation exactly as they were.
+> - **Return nothing but your status** — no diff.
+>
+> Report when the markers are resolved:
+> - **SUCCESS** — markers gone, both intents preserved.
+> - **NEEDS_CONTEXT** — the two intents genuinely conflict and cannot both stand; name the collision (this is a coupling signal, not a thing to paper over).
+> - **BLOCKED** — the conflict cannot be resolved by merging alone (name why).
+
+## Model
+
+The tier is pinned by the session at dispatch — the acting rule and its record live at SKILL.md 3.2.2, not here.

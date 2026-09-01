@@ -1,110 +1,159 @@
-# Sprint Plan Format
+# Sprint Plan format
 
-Use this format when writing a Sprint Plan in Phase 4 of `/sprint-plan`.
+Shape of `.sprint/sprint-v{N}.md` — the sprint's versioned objective, one file per sprint. Written at Plan 1.2.6. Must parse as a YAML frontmatter block + Markdown body. The body is **frozen once the plan is accepted** (Plan 1.3.1); `status:` is the only field that ever mutates afterwards.
 
-> [!IMPORTANT]
-> A Sprint Plan is an **immutable per-cycle snapshot** — once a cycle is approved, the file is frozen. It is **NOT** a living Sprint Backlog. In-cycle status (what's done, in progress, blocked) lives in **Issues**, never here. A Sprint Plan **references** the Brief, Spec, Stories, and ADRs — it never reproduces them.
+A Sprint Plan states *what this sprint delivers and why* — never how at code level (`.spec/spec.md#anchor` and `ADR-###` carry the technical detail), never in-sprint progress (Issues carry that). Every fact owned elsewhere appears as a reference, never a copy: `US-###`, `.brief/brief.md`, `.spec/spec.md#anchor`, `#N`.
 
+## Frontmatter
+
+```yaml
 ---
+version: 3               # sequential integer, no gaps; derives the v{N} label and feat/sprint-v{N}(-<g>) chain names
+status: draft            # the ONLY mutable field — see lifecycle
+date: 2026-06-13         # creation date, ISO; never updated
+author: tim              # the human who owns the sprint; a bare name. An agent-run session with no human owner writes Session Agent — never invent a human
+previous: sprint-v2.md   # prior sprint's file; null for v1
+---
+```
 
-## Sections (in order)
+### `status:` lifecycle
 
-### 1. Goal
+| Value | Means | Flipped by |
+| --- | --- | --- |
+| `draft` | active — covers planning and all building-against, until the sprint's final PR lands | set on creation, Plan 1.2.6 |
+| `built` | implementation complete — every `feat/sprint-v{N}(-<g>)` PR landed on `development` (a forge fact; this field annotates it) | Refine 5.3.1, riding the spec-sweep commit (the run that completes the sprint); irregular close (all PRs landed yet still `draft`) → the Plan 1.0.3 backstop, riding the next sprint's `docs(plan)` bundle |
+| `archived` | superseded — a newer draft exists | Plan 1.0.3 cascade, riding the `docs(plan)` bundle |
+| `abandoned` | draft cancelled before build (user-driven, rare) | Plan 1.0.3 |
 
-The **first line** is a single pass/fail objective, written exactly in this shape:
+- At most **one `draft`** exists across `.sprint/` at any time (Plan 1.0.3 enforces).
+- No `released` (that is plugin `.prd/` lifecycle, not Sprint Plans). No `planned` / `complete` — sprint completion is the forge fact of landed PRs, never duplicated here.
+- A status edit is an **annotation, not a change** — it never earns its own commit; it rides an existing one (which, per the `Flipped by` column above).
 
-> This cycle succeeds iff `<one objective>`.
+## Body sections — in order, all required unless marked optional
 
-One sentence. One condition. If you need "and" to join two objectives, the cycle is too big — split it.
+**Goal** — the sprint's pass/fail criterion in full; what 5.3.2 checks the landed PRs against, so every condition that decides pass/fail lives here (none demoted to Scope/DoD/stories). Two forms:
 
-### 2. Non-goals
+- **Single-condition** (default): `This sprint succeeds iff <one objective>.` One sentence, binary pass/fail. An "and" buried in one objective signals scope overflow — split or cut.
+- **Multi-condition** (only when the objective genuinely couples 2–3 conditions that pass or fail together): a lead sentence naming the headline condition — the one the Success metric measures — then a bulleted acceptance list, every condition binary:
+  ```
+  This sprint succeeds iff <headline condition>, with:
+  - <condition 2>
+  - <condition 3>
+  ```
+  The headline is the metric-bearing condition (ties Goal ↔ Success metric); the bullets are the rest of the pass/fail set. Past three bullets it is scope overflow — split the sprint.
 
-Things this cycle deliberately will not do. Short bullets. Use this to cut scope drift before it starts.
+No condition that decides pass/fail may live only in Scope or DoD — Scope bounds *what's touched*, the Goal states *what must be true to pass*.
 
-### 3. Solution
+**Non-goals** — short bullets; what the sprint deliberately omits.
 
-One **non-technical** paragraph: what this cycle delivers, at the highest level, in plain language. No architecture, no file names, no jargon.
+**Solution** — one non-technical paragraph; the highest-level delivery statement. No architecture, no filenames, no jargon.
 
-### 4. User-stories slice
+**User-stories slice** — reference-only bullets of `US-###` IDs from `.stories`; never restate the story sentence. Each carries sprint-specific detail: which part this sprint delivers.
+Form: `` `US-012` — sprint detail: … ``
 
-The slice of user stories this cycle covers. **Reference** each by its stable ID (`US-###`) and add cycle-specific detail — **never restate the story sentence** (it already lives in `.stories/STORIES.md`).
+**Epics** — the sprint's delivery partition, **owned here** and consumed verbatim by Tickets (2.0.2, which owns the consumer list — the partition is decided once, at plan time, never re-derived per run). One bullet per epic: `` `epic:<name>` — the `US-###` / Scope rows it groups ``. The `<name>` is the literal forge-label token, written **already label-safe** in labels-format's slug charset (lowercase `a–z 0–9 -`); Tickets copies it byte-for-byte with no transform, so the plan's token and the forge label are always the identical string. A single-epic sprint states its one epic — the section is never omitted (whether the breakdown then flattens is Tickets' 2.3.2 structure call, not an absent partition).
 
-- `US-012` — cycle detail: which part of this want the cycle delivers
-- `US-018` — cycle detail: ...
+**Scope** — exactly ONE in/out table, both columns populated. Never a separate out-of-scope section.
 
-### 5. Scope
-
-A **single** in/out table. Do not add a standalone out-of-scope section — everything out-of-scope goes in the right column here.
-
-| In scope this cycle | Out of scope this cycle |
+```
+| In scope this sprint | Out of scope this sprint |
 | --- | --- |
 | ... | ... |
+```
 
-### 6. Architecture (shape of the change)
+**Architecture** — shape of change only, 2–3 lines: how the sprint alters the system, pointing into the Spec by anchor (`.spec/spec.md#anchor`) and to governing decisions in `.adr`. Reference a decision by its real `ADR-###` when it carries a number; an unnumbered decision is referenced by title (`.adr` "<decision title>") — **never invent a number** to satisfy the form (a fabricated `ADR-###` sends a downstream consumer following the anchor to the wrong or nonexistent record). NO directory tree, component catalogue, data-flow, or integration-point list — those live in `.spec`.
 
-The **shape of the change** only — 2–3 lines describing how this cycle alters the system and pointing into the Spec. This is a plan-time pointer, distinct from the spec's `ADDED/MODIFIED/REMOVED` delta that the spec-writer applies at `/sprint-refine`. Do **not** reproduce the architecture: no directory tree, no component catalogue, no data-flow diagram, no integration-point list. Those live in `.spec/spec.md`.
+**Success metric** — ties this sprint's measurable target to the `.brief` north-star. Two distinct things, so name both: the north-star (the `.brief`-owned goal, referenced not restated) and **this sprint's concrete metric** (the measurable proxy the Goal's headline condition moves). When the north-star *is itself* a single number, the two collapse — say so by naming one metric for both roles. Pick the form the metric's state demands:
 
-> Example: "Adds a `RetryQueue` between the dispatcher and the worker pool — see `.spec/spec.md#runtime-view`. No data-model change."
+- **Move an existing metric:** `North-star (<.brief goal, defined in .brief/brief.md>) — this sprint's metric: <metric name>, cut from X to Y.`
+- **Establish a first-time baseline** (no prior X to move from): `North-star (<.brief goal, defined in .brief/brief.md>) — this sprint's metric: <metric name>, establish baseline at <target>.`
+- **They collapse** (north-star is the number): `North-star (<metric name>, defined in .brief/brief.md): cut from X to Y this sprint.`
 
-### 7. Success metric (target)
+If the metric carries a stated tracking horizon beyond this sprint, append it — `; tracked for <window> post-ship.` — never drop the window (it is a stated fact with no other home in this format).
 
-The measurable target for this cycle. **Name the Brief's north-star metric** and state the period target for it here (the Brief defines the metric and its guardrails; the period target lives here, in the cycle snapshot).
+**Timebox** — one line, duration only.
 
-> Example: "North-star (median time-to-first-PR, defined in `.brief/brief.md`): cut from 9 min to ≤ 6 min this cycle."
+**Definition of Done** — an **anchored** reference to the canonical DoD: `.brief/brief.md#<anchor>` (the heading anchor, never a bare file path — a consumer resolves to the exact DoD heading, not the whole file); never restate its text. Add only sprint-specific exit conditions beyond the canonical DoD, if any exist.
 
-### 8. Timebox
+**Dependencies & Risks** *(optional — include only when real)* — three-column table: `Dependency / Risk` · `Impact` · `Tracking Issue` (`#N` when a tracked issue already exists; `—` otherwise — the row itself is the **permanent** tracking record; the plan file is never edited after 1.3.2, so no later phase backfills the cell — a `/sprint-plan` revision may link an issue when one exists; never fabricate a number). Never park unmanaged risk text outside this table.
 
-How long this cycle is allotted. One line.
+## Never include
 
-### 9. Definition of Done
+- Full architecture block: directory tree, component list, data-flow diagram, integration list (`.spec` owns these)
+- File tables (Source / Detailed-changes / Migration / Verification / History)
+- A standalone "Out-of-Scope" section (the scope table's right column is the only home)
+- A multi-row success-metrics matrix (one north-star, one target)
+- User/System-Flow, Testing Strategy, Privacy & Security, or Rollback Plan sections (tickets' AC, `.spec`, and `.adr` own these)
+- In-sprint progress — done / in-progress / blocked (Issues own status)
+- Restated story sentences, DoD text, or Spec content (reference only: `US-###` · `.brief/brief.md` · `.spec/spec.md#anchor`)
+- Open `[NEEDS CLARIFICATION: …]` markers (all resolved before the draft is accepted)
+- Implementation code, ever
 
-A **reference** to the Brief's canonical Definition of Done (`.brief/brief.md`). Do not restate it — the Brief owns the DoD. Add only cycle-specific exit conditions if any exist beyond the canonical DoD.
+## Example
 
-### 10. Dependencies & Risks (optional)
+```markdown
+---
+version: 3
+status: draft
+date: 2026-06-13
+author: tim
+previous: sprint-v2.md
+---
 
-Include only when real. Dependencies = things outside this cycle's control. **Risks must point to labelled Issues** (`#123`) that track them — do not park unmanaged risk text in the snapshot.
+# Sprint v3 — Webhook delivery retries
+
+## Goal
+
+This sprint succeeds iff a failed webhook dispatch is delivered within 5s, with:
+- retries spanning a 2-hour window before dead-lettering
+- dispatch signed with the rotated secret, verified end-to-end
+
+## Non-goals
+
+- No manual replay controls or retry UI
+- No multi-region dispatch
+
+## Solution
+
+Failed deliveries stop disappearing silently: the platform now retries them on its own and sets aside the ones that keep failing, so integrators receive every event without anyone watching a queue.
+
+## User-stories slice
+
+- `US-007` — sprint detail: automatic retry with backoff; the dead-letter notification email ships next sprint
+- `US-012` — sprint detail: dead-letter queue persisted and queryable, full slice
+
+## Epics
+
+- `epic:retry-pipeline` — `US-007`; retry/backoff + delivery-outcome counter scope rows
+- `epic:dead-letter-store` — `US-012`; dead-letter persistence scope row
+
+## Scope
+
+| In scope this sprint | Out of scope this sprint |
+| --- | --- |
+| Retry with exponential backoff | Manual replay from dead-letter |
+| Dead-letter persistence after max attempts | Dead-letter notification email (`US-007` remainder) |
+| Delivery-outcome counter | Multi-region dispatch |
+
+## Architecture
+
+A `RetryQueue` slots between dispatcher and worker pool — see `.spec/spec.md#runtime-view`. Dead letters persist through the existing store (`.spec/spec.md#data-model`); no schema change. Decision context: `.adr` "async queue selection", `.adr` "caching strategy" (both unnumbered).
+
+## Success metric
+
+North-star (delivery latency, defined in `.brief/brief.md`): establish baseline at <2s local / <5s staging this sprint; tracked for 2 weeks post-ship.
+
+## Timebox
+
+1 week.
+
+## Definition of Done
+
+Canonical DoD per `.brief/brief.md#definition-of-done`. Sprint-specific addition: a forced-failure dispatch demonstrably lands in the dead-letter store.
+
+## Dependencies & Risks
 
 | Dependency / Risk | Impact | Tracking Issue |
 | --- | --- | --- |
-| ... | ... | #123 |
-
----
-
-## Do NOT include
-
-- A full **Architecture block** — no directory tree, component catalogue, data-flow diagram, or integration-point list (Spec owns these; here, only a 2–3 line shape-of-change pointer).
-- **File tables** — no Source / Detailed-changes / Migration / Verification / History / file-or-line tables. File-level detail belongs in tickets and the Spec.
-- A **standalone Out-of-Scope section** — the single Scope table's right column covers it.
-- A **multi-row Success-Metrics matrix** — one north-star target only.
-- **User/System-Flow**, **Testing Strategy**, **Privacy & Security**, and **Rollback Plan** optional sections — dropped from this format.
-- **In-cycle progress** of any kind — which ticket is done, in progress, or blocked lives in Issues, never here. (This is distinct from the frontmatter `status:` field, which tracks the coarse *cycle* milestone — see Formatting Rules.)
-- Restated **story sentences**, **DoD text**, or **Spec content** — reference, never reproduce.
-- **Open `[NEEDS CLARIFICATION: …]` markers** in an approved plan — they're allowed in a `draft` while you resolve them, but every one must be gone before the plan leaves `draft`.
-
----
-
-## Formatting Rules
-
-- **Save location:** `.sprint/sprint-v{N}.md` (sequential version number, no gaps).
-- **Immutable per cycle, except `status:`** once approved, the body is frozen — edit nothing. The one mutable field is `status:` in the frontmatter, which advances through the cycle (see Status lifecycle below). The next cycle gets a new `sprint-v{N+1}.md`.
-- **Frontmatter:**
-  ```yaml
-  ---
-  version: {N}
-  status: draft
-  date: {YYYY-MM-DD}
-  author: {author name}
-  previous: sprint-v{N-1}.md
-  ---
-  ```
-  Set `previous: null` for the first Sprint Plan (v1).
-- **Status lifecycle:** `draft → built → archived` (+ `abandoned`). It is the only field that changes after approval, and exactly one skill owns each flip:
-  - `draft` — set by `/sprint-plan` at creation. Covers planning **and** building-against: the file stays `draft` through `/sprint-tickets` and for the whole of `/sprint-build` until the code lands.
-  - `built` — set by `/sprint-build` when the code is done and the PR is created. Means "implementation complete."
-  - `archived` — set by `/sprint-plan`'s cascade when a newer draft is created.
-  - `abandoned` — set by `/sprint-plan` if the user abandons a draft before it reaches `built`.
-
-  There is **no `released`** (that belongs to the plugin's own `.prd/` lifecycle, not a project Sprint Plan) and **no `planned`/`complete`** — cycle-completion is signalled by the PR's `cycle-complete` label, not duplicated here.
-- **References, not reproductions:** every section points at the Brief, Spec, Stories, or ADRs by anchor/ID rather than copying their content.
-- **No implementation code:** Sprint Plans describe what and why for the cycle, not how at the code level.
-- **Scope table:** always include both columns — what's in AND what's out.
+| Upstream signing-key rotation lands mid-sprint | Retried dispatches could fail signature checks | #58 |
+```

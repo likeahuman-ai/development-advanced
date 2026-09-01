@@ -1,21 +1,10 @@
-# Brief Format Reference
+# Brief format
 
-The Brief is the durable product charter — the slowest-changing artifact in the system. One file (`.brief/brief.md`). It states what this product is, who it serves, and the principles that guide it. `/sprint-plan` authors and reads it; the Sprint Plan, `/sprint-review`, and `/sprint-refine` **reference** it — they never reproduce its contents.
+The shape of `.brief/brief.md` — the product charter and the **single home** of the Definition of Done. One file per project; the slowest-changing artifact (1.2.1 touches it only on greenfield, brownfield first contact, or a discovery-surfaced project-level shift). It holds only what is **durable across sprints**: if a line would change next sprint, it belongs in `.sprint`/`.stories`/`.adr`/`.spec`, not here.
 
-> [!IMPORTANT]
-> The Brief is the one **living** exception in this system. Edit it **only on a strategic shift** (a change to vision, target users, value prop, principles, north-star, quality goals, non-goals, or Definition-of-Done). It is **NOT versioned** — there is no `brief-vN.md`, no version frontmatter, no `previous:` chain. **Git holds the history.** The Brief is a charter, not a discovery-dump: keep it tight, durable, and current. Cycle-specific findings, exploration notes, and per-feature detail belong elsewhere.
+## File
 
-## Frontmatter
-
-The Brief carries **exactly one** frontmatter field — nothing else:
-
-```yaml
----
-last_reviewed: {YYYY-MM-DD}
----
-```
-
-No `version`, no `status`, no `date`, no `author`, no `previous`. The Brief is not on the versioned PRD lifecycle.
+`.brief/brief.md`. Headings exactly as in the template, in this order, so anchors like `.brief/brief.md#definition-of-done` and `#quality-goals` resolve. Sections are all required.
 
 ## Template
 
@@ -24,97 +13,119 @@ No `version`, no `status`, no `date`, no `author`, no `previous`. The Brief is n
 last_reviewed: {YYYY-MM-DD}
 ---
 
-# {Product Name} — Brief
+# {Product name}
 
 ## Vision
-{One sentence. The durable "why this exists."}
+{the durable why this product exists}
 
 ## Problem
-{The durable problem this product solves. Not a cycle's problem — the standing one.}
+{the standing problem this product solves}
 
 ## Target users
-{One line. Who this is for. NOT a persona dossier.}
+{who this is for}
 
 ## Value proposition
-{What we give them that they can't easily get elsewhere.}
+{the edge over alternatives}
 
 ## Principles
-{2-5 durable product tenets — the tie-breakers for how this product makes decisions. See "Principles" below.}
+- **{Stance}** — {how this product resolves a recurring trade-off}{; where a Quality goal enforces it, name that goal — never the bound}.
+{2–5 items}
 
 ## North-star metric
-{The metric DEFINITION — what it measures and why it's the one number that matters.}
-{Guardrails: metrics that must not regress while chasing the north-star. NO period targets.}
+**{Metric}** — {what it measures and why it's the one number that matters}. {definition only}
 
 ## Quality goals
-{3-5 quality attributes, expressed as guardrails (arc42 §1.2). NOT targets.}
+- **{Guardrail name}** — {one bar, one measurable bound, threshold inline}.
+{≥3 distinct bars; aim for 3–5, but never pack two bars to fit}
 
 ## Non-goals
-{The durable things this product will never do. Not cycle scope — standing exclusions.}
+- {What this product will never do}
 
 ## Definition of Done
-{The canonical, project-wide DoD. This is its single home. Everything else references it.}
+A change is done when:
+- {Per-PR criterion — judgeable against one PR as it lands.}
+
+Outcome criteria (judged across the sprint, not one PR):
+- {Outcome criterion — e.g. the sprint's intent still serves the north-star. Lives here when it can't be checked against a single PR, so the fact isn't dropped.}
 ```
 
-## Section caps
+## Field rules
 
-| Section | Cap |
-| --- | --- |
-| Vision | 1 sentence |
-| Problem | Durable problem only — not a cycle's problem |
-| Target users | 1 line — no persona dossier |
-| Value proposition | Tight statement of the edge we offer |
-| Principles | 2-5 durable product tenets (see below) |
-| North-star metric | DEFINITION + guardrails — **NO period targets** |
-| Quality goals | 3-5 attributes, as **guardrails NOT targets** |
-| Non-goals | Durable standing exclusions only |
-| Definition of Done | The single canonical DoD home |
-| `last_reviewed` | One date in frontmatter |
+| Section | Rule |
+|---|---|
+| Frontmatter | `last_reviewed: YYYY-MM-DD` only — set to today on every deliberate review, including a no-change one (distinguishes "checked, still true" from stale). No `version`, `status`, `author`, or `previous` — the Brief is **not** on a versioned lifecycle. |
+| Vision | One sentence. The durable "why this exists." No elaboration. |
+| Problem | The standing problem, in durable form. This sprint's problem lives in `.sprint/sprint-v{N}.md`. |
+| Target users | One line. No persona dossier. |
+| Value proposition | Tight: the edge — what they get here they can't easily get elsewhere. |
+| Principles | 2–5 durable product tenets — standing stances on recurring trade-offs (privacy vs personalisation, correctness vs latency, reversibility vs speed). Product-level only: a technology choice is an `ADR-###`; a dev-process stance is not a product tenet. A captured `ADR-###` is checked against these (1.2.4) — flag, don't restate. When a principle's stance is also enforced by a Quality goal (e.g. a privacy stance and a privacy bound), the principle gives only the stance + its scope and **names** that goal as where the measurable edge lives — it never restates the bound (the Quality goal is its single home, exactly as the DoD never restates one). The stance lives here, the number in the goal — the canonical home is never ambiguous. |
+| North-star metric | The **definition** only — what it measures and why it's the one number. Never a period target ("1M users by Q4" is banned shape) and never a guardrail list — a metric that must not regress while chasing it is a Quality goal (with its bound), not a line here. The definition feeds the 1.1.1 intent check and 1.2.4 ADR check. |
+| Quality goals | The **single home** of every standing quality bar — quality attributes as measurable **guardrails** (arc42 §1.2), standing through sprints. **One bar = one named line, one bound** ("p95 < 200ms on the production dataset", "zero silent failures", "recovery ≤ 5 minutes") — never two distinct bounds on one line (the second loses its name and stops being judgeable). The bar's name and its number are never split apart, north-star guardrails included: a metric that must not regress while chasing the north-star is one of these distinct bars, listed here with its bound, never under North-star. **Aim for 3–5; the single-home mandate wins the tie** — when distinct standing bars (north-star guardrails among them) exceed 5, the count of *distinct* bars governs, never the cap: list every one as its own line, don't pack two to fit. (Above ~6, that is itself a signal the product carries too many standing bars — surface it, don't bury it.) These are read by the Tickets session at 2.0.2 (the working inputs), form part of the review standard reviewers judge against (4.2.2), and gate the DoD's no-regress criterion (5.2.1); write each so an agent can judge a change against it with no further context. |
+| Non-goals | Standing exclusions — what this product will *never* do. Not sprint scope ("we won't build X this sprint" → `.sprint`). |
+| Definition of Done | The canonical project-wide DoD, the **single home** of this fact, applied per-PR at acceptance (5.2.1); the plan's DoD-ref (1.2.6) points here. Two parts: **per-PR criteria** ("a change is done when…", judgeable against one PR — the per-PR DoD is the project DoD applied to what that PR delivers), and **outcome criteria** judged across the sprint (e.g. the intent still serves the north-star) — keep these in their own list so a real DoD fact that can't be checked against one PR is *recorded*, never silently dropped. The no-regress criterion points at Quality goals for its thresholds (their single home) — it never restates a bound. |
 
-## Principles
+## What does not belong
 
-The `## Principles` section holds **2-5 durable product tenets** — the opinionated tie-breakers that decide how *this product* resolves a recurring trade-off, so the same argument is not re-litigated every cycle. A principle is a standing stance, not a one-off choice: when two valid options compete, it states which way this product leans by default.
+- Sprint goal, scope, success metric → `.sprint/sprint-v{N}.md`
+- User-facing wants → `US-###` in `.stories`
+- Decisions and their trade-offs (incl. technology choices) → `ADR-###` in `.adr`
+- How the system is actually built → `.spec/spec.md`
+- Exploration notes, per-feature detail — anything that changes per sprint
 
-These are principles of **the product being built**, at product altitude — not principles of the development process or the tooling.
+## Editing
 
-**Belongs here** — durable product trade-off stances, e.g.:
-- *"Privacy over personalisation — no user data leaves the device."*
-- *"Correctness over latency — never show stale financial data, even if it costs a round-trip."*
-- *"Reversible over fast — every destructive action must be undoable."*
+Living but scarce. A **content** edit is a strategic shift — vision, users, value proposition, principles, north-star, quality goals, non-goals, DoD — and pairs with an `ADR-###` carrying the why. Everything else is a typo fix in place. Either way, bump `last_reviewed`.
 
-**Does NOT belong here:**
-- *How the workflow or tooling runs* (model choice, parallel-vs-sequential execution, agent roles) — that is the dev process, not the product.
-- *A specific technology decision* ("Convex over Supabase") — that is one dated choice with alternatives → an **ADR**.
-- *A measurable bar* ("p95 < 200ms", "99.9% uptime") → a **Quality goal**.
+## Example
 
-Distinguish from neighbours: a **principle** informs many future decisions; an **ADR** records one decision and its rejected alternatives; a **quality goal** is a measurable attribute. If a tenet is really about how the team or tooling builds rather than what the product values, it does not belong in the Brief.
-
-## When to edit
-
-Edit the Brief **only on a strategic shift**. A typo or a clarified phrasing is fine inline, but a real change — vision, target users, value prop, a principle, the north-star, a quality goal, a non-goal, or the DoD — is a strategic event. When you make one:
-
-1. Apply the edit in place (no new file — git holds the before/after).
-2. Bump `last_reviewed` to today.
-3. **Pair it with a product ADR.** The Brief records **WHAT** shifted; the ADR records **WHY**. A strategic Brief change with no accompanying ADR is incomplete.
-
-## Definition-of-Done ownership
-
-The Brief is the **single canonical home** for the Definition of Done. Every other artifact that needs the DoD — the Sprint Plan's close-out gate, `/sprint-refine`'s DoD gate, `/sprint-review`'s quality check — **references** `.brief/brief.md#definition-of-done`. They do not restate it. There is exactly one DoD, and it lives here.
-
-## What belongs elsewhere
-
-The Brief is durable charter only. Faster-changing or more specific content lives in its proper artifact:
-
-| Content | Lives in |
-| --- | --- |
-| Current set of wants ("As a X, I want Y, so that Z") | Stories (`.stories/STORIES.md`) |
-| The WHY behind a decision (incl. a strategic Brief shift) | ADR (`.adr/ADR.md`) |
-| What the system currently IS (architecture, data model, API) | Spec (`.spec/spec.md`) |
-| This cycle's goal, scope, and timebox | Sprint Plan (`.sprint/sprint-vN.md`) |
-
-## Greenfield
-
-On a greenfield project there is no founding document to inherit from. The **first cycle** of `/sprint-plan` writes both the Brief (`.brief/brief.md`) and the first Sprint Plan (`.sprint/sprint-v1.md`) together. Every later cycle reads the existing Brief and only touches it on a strategic shift.
-
+```markdown
+---
+last_reviewed: 2026-06-13
 ---
 
-**Vocabulary:** `/sprint-plan`, `/sprint-review`, `.sprint/`, `.brief/`, `.stories/`, `.adr/`, `.spec/`
+# Relay
+
+## Vision
+Every webhook a small team sends arrives exactly once — or they can see exactly why it didn't.
+
+## Problem
+Teams that emit webhooks rebuild the same delivery machinery — retries, signing, dead-lettering, receiver debugging — badly, on every project, and failures stay silent and unexplainable.
+
+## Target users
+Backend teams of 1–10 shipping APIs that must notify third-party receivers.
+
+## Value proposition
+Drop-in delivery with full per-event forensics, self-hosted: managed competitors offer delivery or visibility, never both without taking custody of payload data.
+
+## Principles
+- **Self-hosted over convenient** — payloads never leave the operator's infrastructure, even when a managed feature would be easier to build; the No-leak guardrail below is the measurable edge of this — it covers payload bytes, not delivery metadata, which Relay may relay through its own update channel.
+- **Explainable over silent** — every delivery outcome is reconstructable from stored evidence; no fire-and-forget path exists.
+- **Correctness over latency** — a delayed delivery beats a duplicate one; idempotency and ordering win ties.
+
+## North-star metric
+**Explained-delivery rate** — the share of events that either arrive (acknowledged 2xx) or carry a complete failure trace. It is the one number because both halves of the value proposition — delivery and forensics — degrade it when they slip.
+
+## Quality goals
+- **Delivery latency** — p95 enqueue-to-first-attempt must not exceed 2s at 1k events/min.
+- **No silent failure** — every terminal event state writes a trace record; zero terminal states without one.
+- **No leak** — payload bytes never cross infrastructure the operator doesn't run; checked at every storage and egress path.
+- **Crash durability** — a node crash loses no accepted event (at-least-once across restarts).
+- **Time to first delivery** — a fresh operator reaches first delivery from a single binary in under 15 minutes.
+
+## Non-goals
+- We will never store or relay payloads through infrastructure we operate.
+- No general-purpose message queue — webhooks out, nothing else.
+- No billing or seat logic in the core; monetisation lives outside this codebase.
+
+## Definition of Done
+A change is done when:
+- Every acceptance criterion of its tickets passes on the code as it lands.
+- The build-order Verify command passes on the landing tip.
+- New behaviour carries tests; fixed behaviour carries a regression test.
+- No Quality goal above regresses — measured at its stated threshold where a check exists, argued where not.
+- `.spec/spec.md` reflects the change as landed.
+- Any new dependency or externally visible contract change has an `ADR-###` recording the choice.
+
+Outcome criteria (judged across the sprint, not one PR):
+- The sprint's landed change leaves Explained-delivery rate no worse than its pre-sprint reading.
+```

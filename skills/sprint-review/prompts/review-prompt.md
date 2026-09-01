@@ -1,56 +1,37 @@
-# Review Agent Dispatch Prompt
+# review-prompt
 
-Template for dispatching specialist review agents. The main model fills in the bracketed sections.
+The common envelope dispatched at 4.3.1 — one cover note sent to the whole specialist roster in a single parallel batch. It is **thin by design.** Each reviewer agent file already owns its own mandate, its calibration, its self-assessment, and its output shape; this envelope adds only what no single agent file can know: the shape of *this run* and the names of the *other specialists* sharing it. Everything substantive arrives as injected context (named below) — never reproduced here.
 
 ---
 
-## Review: [agent role]
+## This run's roster
 
-### PR Context
-- **PR:** #[number] — [title]
-- **Repository:** [owner/repo]
-- **Branch:** [head] → [base]
-- **Description:** [PR summary — what was built and why]
+Your peers in this batch:
 
-### Changed Files
-[List of files with change type: added/modified/deleted]
+- **Floor (always):** `code-quality-reviewer`, `code-simplifier`
+- **Mandatory on sensitive surfaces:** `security-reviewer` — non-optional whenever the change touches auth · secrets · input-handling · subprocess · network (the 4.2.3 hard floor)
+- **Conditional (only those the change triggered):** `silent-failure-hunter`, `type-design-reviewer`, `test-coverage-reviewer`, `comment-analyzer`, `history-reviewer`, `standards-reviewer`
 
-### Platform Context
+Your agent file owns your lane against each peer — work it, and trust them to work theirs.
 
-{{platform_context}}
+## What the dispatch injects (context, not restated here)
 
-If no platform context is provided, skip this section.
+Held in your prompt for this review only — read each, skip silently if absent:
 
-### Current Spec Slice
+- **The diff** — the target. The change you are reviewing.
+- **The review standard** — the `.spec` slice for the touched modules, the governing `.adr` set in full, and the `.brief` quality goals. Judge against this.
+- **The platform-as-fact line** — the framework, asserted bare (e.g. `Platform: Next.js 16 App Router`).
+- **Your read-surface path** — one literal labelled line, `Read-surface: <absolute path>` (this PR's review worktree). Run every Read/Grep and any file access under that path — never your shell's default working directory, which may sit at another PR's head. If no `Read-surface:` line is present in your dispatch → stop and report it; never fall back to your default working directory.
+- **Your matched rules** — standards / security rule content, injected only into the specialists that use them.
 
-{{spec_slice}}
+These are context, not part of this envelope; the envelope names them so you know what to expect, nothing more.
 
-The current `.spec/spec.md` sections covering the modules this PR touches (Architecture, Data Model, API Surface, and any relevant Crosscutting Concepts) — the live system contract the change must fit. The spec is only patched into its ADDED/MODIFIED/REMOVED delta later, at `/sprint-refine`; at review time you check against the current spec, not a delta. If no spec is available (greenfield or pre-migration), skip this section.
+You may read the local tree at your discretion — direction from this dispatch, discretion to you (your agent file holds how).
 
-### Quality Goals
+**Cite locations by the real tree line, not the diff.** The diff is the seed; the `Read-surface:` tree (above) sits at the PR head, and every `file:line` you report is the line in *that tree* (grep the symbol) — never a `gh pr diff` hunk offset, which overshoots the file and breaks the permalink.
 
-{{quality_goals}}
+## Output
 
-The 3-5 quality attributes from `.brief/brief.md` (arc42 1.2), referenced here as guardrails — not reproduced in full. If no Brief is available, skip this section.
+Report in your own agent-file format. The session collects every report per `finding-report-format` (`${CLAUDE_PLUGIN_ROOT}/skills/sprint-review/formats/finding-report-format.md`) — that format owns the collected shape; you fill your block, the arbiter fills its.
 
-### Diff
-[The relevant portion of the diff for this agent's focus area. For focused agents like silent-failure-hunter, include only files with error handling. For broad agents like code-quality-reviewer, include the full diff.]
-
-### Instructions
-Review ONLY what the PR changed. Do not flag:
-- Pre-existing issues on unchanged lines
-- Issues a linter, typechecker, or CI would catch
-- Style or formatting preferences
-- General observations that aren't actionable
-
-Prioritise findings that diverge from the Current Spec Slice (code that contradicts the system contract the spec describes) or that violate one of the Brief's Quality Goals. Surface these first.
-
-The Current Spec Slice and Quality Goals slots above are injected at dispatch for this review only — they are not reproduced durably in this template or stored on the PR.
-
-For each finding, include:
-- File path and line number
-- Code snippet showing the issue
-- Evidence explaining why this is a real issue
-- Specific suggestion for fixing it
-
-If no issues found, say so clearly.
+Two finder-block fields do heavy lifting downstream — fill them at the source: **`expected`** (the correct behaviour, one line — the oracle a regression test will encode) on every behavioural claim; a behavioural finding without it cannot tag testable. **`violates`** (the `ADR-###` / `.spec#anchor` / named rule you judged against) whenever a named contract grounds the finding — you hold the review standard; downstream only holds what you write.
