@@ -1,7 +1,7 @@
 {
   "name": "development-advanced",
-  "version": "2.0.0",
-  "description": "Team-grade dev workflow on plain git — /sprint-plan (+ ADRs) /sprint-tickets /sprint-build (parallel waves) /sprint-review /sprint-refine (+ spec, rebase-land on a shared trunk)",
+  "version": "3.0.0",
+  "description": "Team dev workflow on GitHub: /sprint-plan (the only interactive phase) then /sprint-tickets, /sprint-build, /sprint-review and /sprint-refine run on their own, to one stacked PR per ticket",
   "author": {
     "name": "LikeAHuman.ai",
     "email": "academy@likeahuman.ai",

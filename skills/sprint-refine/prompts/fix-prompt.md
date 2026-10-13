@@ -1,53 +1,49 @@
 # fix-prompt
 
-The dispatch brief for a **fix-agent** — the **`fix-agent` custom subagent** (`agents/fix-agent.md`); this brief is the whole task contract, stated in full (a fresh agent reads only this prompt — phases don't share a session). The session writes **one brief per distinct target file** (Refine 5.1.3 — the *file* is the dispatch unit, partitioned from the published comment's `Edits:` lists), injects **every finding that file owns** into the slots, and dispatches all workers in one parallel batch, each worktree cut off this PR's head. (The main-tree solo-heal / marker-fix at a halted collection is a separate **general-purpose** dispatch of `implementer-prompt` Mode B — not this agent.)
+The session fills every `{{slot}}` and changes nothing else. The session sends the text inside the fence, filled, as the `prompt` of the Agent call to `fix-agent`; for a second attempt, to `fix-agent-opus` with the two optional slots filled.
 
-Formats are named for provenance only — everything the worker needs from them is injected into the slots (the finding text, the provision/Verify commands, the `fix(scope):` subject shape); the worker never needs to resolve a format file.
+```markdown
+You fix the review findings of one ticket PR, for a session that fixes several PRs in parallel. The ticket is built; a review found what must change. The session amends the ticket's commit with your work.
 
----
+<ticket>{{#N}}</ticket>
 
-## Prompt
+<pr>{{#P}}</pr>
 
-> ## Fix: [TARGET FILE] — [N] finding(s)
->
-> Fix every finding listed below to a green self-verify. They share this file — you own all of them; apply them coherently. You write code; the session collects and commits it — you produce no diff and do **not** commit anything.
->
-> ### The findings — already arbitrated, do not re-litigate
-> [Per finding, in order: description · evidence · its `Expected:` oracle when present (always present when testable) · commit-pinned permalink · its `Testable:` verdict · its slice of the review standard (resolved from the finding's `Violates:` pointer when it carries one, else the session's derivation — read-only context, the bar the fix must clear; when the slice is empty, the finding's description carries the bar on its own).]
->
-> These findings were scored and published — a settled work order, not a proposal. Fix exactly what each describes; do not re-judge whether any is valid. Fix **every finding listed in this brief — all of them, none optional** (a SUCCESS with a listed finding unfixed is a false report); and fix **only** these — never widen scope to neighbouring code, and never pull in an unlisted finding.
->
-> ### Coding standards
-> {{coding_standards}}
->
-> The user's own conventions, if installed. Follow them — the fixes, and their regression tests when due, are new code. If the slot is empty, follow existing codebase patterns only.
->
-> ### Testable findings — regression tests
-> For each finding marked `Testable: yes`, **also write a regression test** — the finding's `Expected:` line is the oracle: write the test to encode exactly that behaviour, failing against the current code and passing once that fix lands, proving the fix. Test-after the fix is the baseline; writing the test first is a fine upgrade. A `Testable: no` finding gets a plain fix — no test expected. This file's fixes **and their regression tests are one change** — the session commits them as a single commit.
->
-> ### Your working copy — the standing contract
-> You are working in a fresh, isolated copy of the repository (your shell's working directory) — a linked git worktree of the team repository.
->
-> - **Never run git. Never commit.** You are hands, not author. Your worktree shares the team repository's refs and object store — a git write there mutates the project's shared history, which is the session's alone. Writing the files is the whole of your job; the session collects and commits your work after you return.
-> - **It ships no project dependencies.** Run the **provision** command first, every time, then **Verify** — never lean on a `node_modules` that leaked from the parent tree (fragile, and unsound the moment a fix touches a dependency). Both commands come from the build-order's `## Verify` section, verbatim:
->
->   provision:
->   {{provision_command}}
->
->   verify:
->   {{verify_command}}
->
-> - **Self-verify to green.** Run Verify and make it pass before you report. The gate checks form only (typecheck/compile) — it does not execute your regression tests: run each new test directly once to watch it pass (your confidence); the test lands with the fix for the corridor to run post-land. A red Verify is not a finished job.
->
-> ### What you return
-> 1. **Your working directory** — the absolute path of the copy you worked in (run `pwd`). The session needs it to collect your changes.
-> 2. **A summary** — what you changed per finding (each fix, plus its regression test when testable) and a suggested `fix(scope): <the file's findings>` subject (plus a body only if a change-local "why" needs one). Do **not** add trailers — the session adds them. Do **not** paste a diff.
-> 3. **Your status** — exactly one:
->    - **SUCCESS** — every listed finding is fixed, Verify green, self-review clean (and each regression test passes, when testable).
->    - **NEEDS_CONTEXT** — a fix is blocked on a specific missing fact (name it and the finding it blocks).
->    - **BLOCKED** — a referenced file/symbol/dependency does not exist, or a finding cannot be fixed as described (name which, and why). A red Verify you cannot resolve is BLOCKED, not SUCCESS.
->
-> Before you report, check your own work against each finding: the described issue resolved, the standard satisfied, no unrelated code touched, no new issue introduced.
->
-> ### What the session does after you
-> Using your reported working directory, the session commits your tree inside the worktree — **one atomic commit for this file's fixes** from your suggested subject, its own trailers — and cherry-picks it onto the PR's branch before running the verify gate.
+<findings>{{every Fix finding of the PR's latest ### Code Review comment, verbatim}}</findings>
+
+<provision>{{the provision command from the build-order's ## Verify}}</provision>
+
+<check>{{the check commands from the build-order's ## Verify}}</check>
+
+<config>{{absolute paths of gitignored files the build needs, one per line, or "none"}}</config>
+
+[<first_attempt>{{the first fix agent's report, verbatim}}</first_attempt>]
+
+[<first_worktree>{{the absolute path of the first attempt's worktree}}</first_worktree>]
+
+<task>
+Your worktree holds the PR head. Read the ticket with `gh issue view {{N}}` and each finding. `${CLAUDE_PLUGIN_ROOT}/skills/sprint-review/formats/finding-format.md` says what each line of a finding means. If <first_attempt> is present, read it and `git -C <first_worktree> diff` first, keep what is sound, and never edit a file there.
+
+Work only inside your current working directory. Copy each file in <config> to the same relative path here, then run <provision> first. Never commit, and never run a git command that changes the repository.
+
+Open every file a finding names, the code it calls and the tests around it. Make independent reads in parallel.
+
+Fix every finding. Change only what a finding asks for; the rest of the ticket stays as it was built, and nothing new is added beyond the regression tests below. For a finding with an `Expected:` line, add a regression test that fails on the flaw and passes after the fix, beside the ticket's test. Change an existing test only where a finding says it does not prove its criterion; never weaken, skip or delete a test to make a check pass. Write a general solution, not code that only passes the test inputs.
+
+If a finding seems mistaken, say so in a sentence in your report, with the code that shows it, and leave that part as it is.
+
+The task is done when every finding is fixed or reported as mistaken, and the ticket's test, the regression tests and every command in <check> pass.
+
+If you cannot get the checks to pass, stop and report `failed`.
+</task>
+
+<report>
+Lead with the outcome: your first line is the status, `done` or `failed`, and one sentence on why. Then report:
+(a) the absolute path of your working directory, and the model ID you run on;
+(b) per finding, `F-n`: fixed, with `file:line` and its regression test, or mistaken, with the code that shows it;
+(c) the evidence: the command of each check and its passing output, trimmed to the lines that matter;
+(d) every file you changed;
+(e) for `failed`: what you tried, the failing output, and why you think it fails.
+Cover the substance, but do not pad.
+</report>
+```

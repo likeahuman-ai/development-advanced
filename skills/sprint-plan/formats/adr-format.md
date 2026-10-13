@@ -1,96 +1,84 @@
-# ADR Format
+# Preamble
 
-Shape of `.adr/ADR.md` — the append-only architecture decision log. Each record is **standing law**: written once at 1.2.4, consumed context-less by every later phase (*trust the artifact*). Written for a model to read back, not a human to sign off (*artifacts are for AI, not humans*) — no approval boxes, no restated context, no record nothing points at.
+This file is the format of `.adr/ADR.md`, the append-only architectural decision log. `/sprint-plan` writes it. Tickets cite a decision on their `Related to` line; every later phase treats a decision as standing law.
 
-## File conventions
+## Gate
 
-- **Location:** `.adr/ADR.md` — one file, every record, appended in creation order. (The dotdir is `.adr/`; the file is `.adr/ADR.md`.)
-- **File shape:** **no H1, no preamble** — the file is the records and nothing else. The first meaningful line is the first record's `## ADR-001` heading; every record is an `## ADR-###` block (`## ` is the record delimiter a parser keys on). No title, no intro, no separators between records.
-- **Numbering:** `ADR-###` — sequential, zero-padded three digits (`ADR-001`, `ADR-002`, …). No gaps, never reused, never out of order.
-- **Append-only:** a record's body is never edited or deleted. Reverse a decision by appending a **new** record carrying `Supersedes: ADR-###`. The only sanctioned touch on an existing record is adding one `Status:` line — an annotation, not a rewrite.
-- **Pointed at, never copied:** other artifacts and commit trailers reference a record by `ADR-###` only; the body lives once, here. The point-in-time text is recoverable from history (`git show <commit>:.adr/ADR.md`) — so IDs must stay stable.
-- **The commit binding lives outside this file — by design.** Which commit introduced or last touched a record is **not** a field here; that binding is `commit-format`'s `ADR: ADR-###` trailer on the `docs(plan)` commit — a trailer that points at the record by ID, never a copy — recovered from git, never restated in the record. A reader of a checked-out `ADR.md` sees only IDs + content; the commit that pinned each record is found by `git log --grep` on the trailer, not from any in-record marker. This format owns the record's **shape**; `commit-format` owns the **commit ↔ record** link.
+A decision earns an `ADR-###` when all conditions are met:
 
-## The bar — what earns a record
+1. **Hard to reverse** — changing your mind later costs something real.
+2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
+3. **A real trade-off** — genuine alternatives existed and one was picked for specific reasons.
+4. **Shapes the system** — it defines how the parts form the whole.
 
-Three judgment tests, applied **as guides, never a hard all-three gate**: the decision is **hard to reverse** · **surprising without context** · **a real trade-off** was made. A decision is captured on judgment guided by these tests — a governing decision that fails one test may still earn a record; the producing skill (1.2.4) owns when the bar is met, and when in doubt the reasoning stays in the plan.
+## File
 
-Not records: naming choices · reversible config · single-module implementation detail · a choice with no real alternative · standard framework patterns. **Scarcity is the design** — every record is load-bearing law, so each reads terse: no cost tables, no measurements, no alternatives studies, no design-doc prose. Bloat is the signal a record didn't clear the bar.
+- **Location:** `.adr/ADR.md` is one file, with every record, appended in creation order.
+- **Shape:** The first line is the first record's `## ADR-001` heading. Every record is an `## ADR-###` block. A parser uses `## ` to find each record. The file has no title, no intro, no separators between records.
+- **Numbering:** `ADR-###` numbers are sequential and zero-padded to three digits (`ADR-001`, `ADR-002`, …). The numbers are unique, have no gap, and never appear out of order.
 
 ## Template
 
 ```markdown
-## ADR-### — <decision title>
+## ADR-### — <title>
 
-> In the context of <context>, facing <concern>, we decided <decision> to achieve <goal>, accepting <trade-off>.
+[- **Status:** proposed | superseded | deprecated]
+[- **Supersedes:** ADR-###]
+- **Date Created:** YYYY-MM-DD
+[- **Date Last Edited:** YYYY-MM-DD]
 
-- **Date:** YYYY-MM-DD
-- **Context:** <the trigger that forced this decision now>
+> <Y-statement: context · concern · decision · goal · trade-off>
+
 - **Decision:** <what was chosen, declarative>
 - **Alternatives rejected:**
   - <alternative actually weighed> — <one-line reason>
-  - … one line per alternative genuinely considered
 - **Locks in:** <forward constraints this creates>
 - **Makes harder:** <costs / options now ruled out>
-- **Scope:** <coarse subsystem boundary>[ — cross-cutting if it binds every consumer]
-- **Revisit when:** <testable trigger condition>
+- **Testable:** no | yes — <trigger>
+[- **Related to:** <ID>[, <ID>]]
 ```
 
-## Field rules
+One entry per slot:
 
-| Field | Rule |
+| Slot | Rule |
 |---|---|
-| **Y-statement** | Mandatory. One sentence, blockquote, directly under the heading: *context · concern · decision · goal · trade-off*. The opening anchor — and the **only** part lifted **verbatim** into downstream prompts (architect 2.2.1, implementer 3.2.1) as a non-negotiable constraint, so it must stand alone: decision, goal, and trade-off legible without the body. |
-| **Date** | Mandatory. `YYYY-MM-DD` — the day the decision was made (capture date at 1.2.4), **not** the commit date or any later edit. A point-in-time fact: it stays frozen at the value written, never re-dated when the record is committed, rebased, or annotated. Git owns the commit timestamp; this field owns the decision moment. |
-| **Context** | Mandatory. The **trigger** — what forced this decision now — not background. When an artifact owns the trigger fact, **cite it** (`US-###`, `.spec/spec.md#anchor`, `#N`, `file:line`) — never restate a fact that lives elsewhere. When no artifact owns it — an inherent domain fact (e.g. "clients disconnect without an explicit logout"), common on a greenfield sprint with no spec anchors or code yet — **state it as bare prose**: one line, no citation. The cite-or-prose call separates a legitimate ownerless trigger from a banned restatement: if a fact has an owner, the citation is mandatory; prose is for facts that have none. |
-| **Decision** | Mandatory. What was chosen, stated declaratively. |
-| **Alternatives rejected** | Mandatory. **Only the alternatives that were genuinely weighed**, each a one-line reason — record what was actually considered, never manufacture options to hit a count (an invented alternative reads downstream as a real decision). A real trade-off (the third bar test) almost always leaves ≥2 weighed; one that leaves none didn't clear the bar. One line means one line — no comparison study. |
-| **Locks in** | Mandatory. The forward constraints this creates for later work. |
-| **Makes harder** | Mandatory. The cost — options now ruled out or made expensive. |
-| **Scope** | Mandatory. **Coarse** subsystem boundary (`payments`, `auth`, `build pipeline`) — human orientation only, **never a file-path contract**. Implementers receive the Y-statement + decision, never this field. Mark **breadth** with one of two forms, so a consumer can tell a subsystem-local record from cross-cutting law: `payments` (local — governs that subsystem) · `payments — cross-cutting` (binds **every** consumer of that subsystem, not just code inside it). Cross-cutting is the signal a consumer reads in full as standing law even when no plan names it; local records are safe to read selectively when the plan doesn't call them out. |
-| **Revisit when** | Mandatory. A **testable** trigger ("provider ships X", "load exceeds Y") — never "periodically". |
-| **Status** | Optional, single line — the **only** sanctioned edit to a written record. Closed value set: `proposed` · `superseded by ADR-###` · `deprecated`. **Absence is not missing data — it definitionally means `accepted`** (the default, never written explicitly), so every record's lifecycle is decidable whether or not the line is present. No value outside the set is valid. |
-| **Supersedes** | Optional. `Supersedes: ADR-###` — first list line, only on a record that reverses an earlier one. |
+| **Status** | Optional, single line. Added once, with `Date Last Edited`. The closed value set is `proposed`, `superseded`, or `deprecated`. Absence is not missing data: by definition, absence means `accepted`. |
+| **Supersedes** | Optional, single line. `ADR-###` is the decision this record replaces. Never edited. |
+| **Date Created** | Mandatory. `YYYY-MM-DD` is the day the decision was recorded. Never edited. |
+| **Date Last Edited** | Optional. `YYYY-MM-DD` is the day of the last change to the record. Absent until then. |
+| **Y-statement** | Mandatory. One sentence, as the blockquote: `In the context of <context>, facing <concern>, we decided <decision> to achieve <goal>, accepting <trade-off>.` It stands alone: an agent that reads only this line knows the decision. |
+| **Decision** | Mandatory. State the decision in a declarative sentence. |
+| **Alternatives rejected** | Mandatory. List **only the alternatives you genuinely weighed**, each with a one-line reason. Never invent options to reach a count. |
+| **Locks in** | Mandatory. The forward constraints this decision creates for later work. |
+| **Makes harder** | Mandatory. The cost: the options this decision rules out or makes expensive. |
+| **Testable** | Mandatory. `no`, or `yes` with a trigger that would reopen it (for example, "provider exposes X" or "load exceeds Y"). |
+| **Related to** | Optional. IDs only: `US-###`, `ADR-###`, comma-separated, in that order when mixed. An edge on the map: written on either record, it connects both. Every ID resolves to a heading. Edited as the system grows. |
+
+## Mutability
+
+- **Related to** is edited as the system grows, with `Date Last Edited`. Nothing else is.
+- **Status** is added once, to replace or deprecate a decision, with `Date Last Edited`. To replace, add a **new** record with `Supersedes`, then mark the old one `superseded`.
+- **Everything else is frozen.** Never change or remove it.
+
+## Ownership
+
+`.adr/ADR.md` is the source of truth. Artifacts reference a record by `ADR-###`. Nobody quotes a record, except an agent prompt that lifts a Y-statement as a constraint.
 
 ## Example
 
 ```markdown
-## ADR-004 — Idempotency keys on all payment mutations
+## ADR-009 — Webhooks verify the signature before they read the body
 
-> In the context of checkout retrying failed network calls, facing the risk of double-charging on retry, we decided to require a client-generated idempotency key on every payment mutation to achieve exactly-once charge semantics, accepting an extra key table and key-management burden in every payment client.
+- **Date Created:** 2026-10-02
 
-- **Date:** 2026-06-02
-- **Context:** US-014 retries checkout on timeout; load testing surfaced duplicate charges where the first request had already succeeded server-side (`checkout.ts:88`).
-- **Decision:** Every payment mutation takes a required `idempotencyKey`; the server stores key → result and replays the stored result on a repeated key.
+> In the context of Stripe and Luma webhooks that change order state, facing forged requests, we decided that every handler verifies the signature with the shared `verifyStripeSig` helper before it reads the body, to achieve one tested way in, accepting that a handler cannot log an unsigned body.
+
+- **Decision:** Every webhook handler calls the shared signature helper first and returns 400 on failure.
 - **Alternatives rejected:**
-  - Dedup by (user, amount, 5-min window) — heuristic; swallows legitimate rapid repeat purchases.
-  - Provider-side idempotency only — covers the charge, not our own order-row writes; partial duplicates remain.
-- **Locks in:** every payment client (web, mobile, backfill scripts) generates and persists keys across retries.
-- **Makes harder:** fire-and-forget payment calls; ad-hoc manual testing against payment endpoints.
-- **Scope:** payments
-- **Revisit when:** the provider exposes end-to-end idempotency covering our order writes, or payment mutations move fully provider-side.
+  - Verify inside each handler by hand — the check drifts per handler.
+  - Verify at the router — the router stays pure, with no logic.
+- **Locks in:** a new webhook handler copies `convex/lumaWebhook.ts`.
+- **Makes harder:** logging the raw body of a rejected request.
+- **Testable:** yes — a provider sends unsigned events by design.
+- **Related to:** US-014
 ```
-
-## Supersession
-
-The append-only reversal (File conventions) worked end to end — a **new** record plus the one-line `Status:` annotation on the old:
-
-New record:
-
-```markdown
-## ADR-009 — Provider-managed idempotency
-
-> In the context of …
-
-- **Supersedes:** ADR-004
-- **Date:** 2026-09-15
-…
-```
-
-On `ADR-004`, append one line:
-
-```markdown
-- **Status:** superseded by ADR-009
-```
-
-The two fields are reciprocal: `Supersedes:` on the new record points back, `Status:` on the old points forward — so the governing-vs-superseded state of any record is decidable from the records alone, with no external index.

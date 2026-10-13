@@ -1,221 +1,142 @@
 ---
 name: sprint-plan
-description: "Turns intent into an approved, committed Sprint Plan — plus ADRs and the living Brief and Stories — on the team's shared development trunk, where sprints are built team-scale in parallel against the spec/ADR knowledge layer. Use when planning team work in that trunk/team environment: the user has an idea for what to build, says 'I want to build', 'let's plan', 'I have a project idea', wants to start a new sprint, or wants to resume an unfinished sprint plan. A solo, sequential, single-PR project belongs to the sibling development plugin instead."
-argument-hint: "Brief description of what to build (optional)"
+description: "Interviews the user about the next sprint until the project's records agree with it and the sprint plan is ready for /sprint-tickets to run without a person. Proposes new and changed stories and decisions, checks them against each other and the code, then lands the plan in one PR on main. Also closes the last sprint: brings .spec up to date with what landed. The only phase that talks with the user. For a team that builds in parallel stacked PRs; a solo, single-PR project uses the development plugin. Never writes tickets, never builds."
+argument-hint: "An idea, or a record to start from (optional)"
+disable-model-invocation: true
 ---
 
-# /sprint-plan — Intent to an Approved Sprint Plan
+# Sprint plan
 
-Phase 1 of the flow: turn intent into an approved, committed `.sprint` plan (+ `.brief`/`.stories`/`.adr`). Drive the sub-phases in order — 1.0 Sprint setup → 1.1 Discovery → 1.2 Author → 1.3 Phase close. Three human gates, all on **content acceptance** (1.1.3 discovery summary · 1.2.5 ADR fidelity · 1.3.1 the plan); a gate approves an artifact's content, never a vcs op — the commit that publishes it follows autonomously. Never gate a commit or a push.
+Interview the user about the next sprint until you reach a shared understanding. Sharpen the project's records as you go. Then write the sprint plan and land it.
 
-Four artifacts, separated by rate of change:
-
-- `.brief` — the living product charter; slowest-changing, written once, edited scarcely (`brief-format`)
-- `.stories` — the living set of wants, `US-###` IDs (`stories-format`)
-- `.adr` — the append-only decision log, `ADR-###` (`adr-format`)
-- `.sprint/sprint-v{N}.md` — this sprint's versioned objective, the primary write target (`sprint-format`)
-
-`.spec` is read-only here — it is a claim about code, patched by Refine (5.3.1), never by this skill.
-
-This skill's formats (`brief-format` · `stories-format` · `adr-format` · `sprint-format`) live at `${CLAUDE_PLUGIN_ROOT}/skills/sprint-plan/formats/<name>-format.md`; dispatch prompts at `${CLAUDE_PLUGIN_ROOT}/skills/sprint-plan/prompts/<name>-prompt.md` — the filename keeps the `-format`/`-prompt` suffix. `commit-format` is owned by Build: `${CLAUDE_PLUGIN_ROOT}/skills/sprint-build/formats/commit-format.md`.
-
-Boundaries that hold for the whole phase:
-
-- **All vcs through the session's own git.** The session runs every git command itself; `gh` drives the forge through Bash — on-demand CLIs, never MCP servers (an MCP server front-loads its whole tool catalogue and rots context).
-- **No push anywhere in this phase** (1.3.3). Plan is local-only; publication is Build-close (3.4.1). Sole exemption: 1.0.2's bootstrap scaffolding (repo create · trunk seed · protection) — scaffolding, not flow history.
-- **The branch stays local.** 1.0.5 cuts `feat/sprint-v{N}` off the fetched trunk — a local branch, deterministic name; no remote ref exists until publication (Build 3.4.1).
-- **Every dispatch runs on a capable tier** — Sonnet or Opus, never Haiku (a misread at a gate or cull corrupts everything downstream).
-- **Commits carry `Assisted-by: <agent> <model>`** — never `Co-Authored-By:` (a model can't hold copyright).
-- **Dispatch, don't do.** The big exploration belongs to `codebase-explorer` agents; the session steers the conversation, gates the content, and authors the commits.
+This is the one phase with a person in it. `/sprint-tickets` and `/sprint-build` run after it with no person in the loop, so every decision they need is made here. Explore, present what you found, confirm with the user, then write.
 
 **Initial request:** $ARGUMENTS
 
-## Preflight
+## Start
 
-Before anything else, verify the two tools the phase rests on:
+Start is your own work. Gather what you need to ask the first round, and no more.
 
-- `git --version` — present; missing → **stop** with install guidance, re-run once installed
-- `gh auth status` — authenticated; not → **stop**: `gh auth login`, then re-run
+1. Run `gh auth status`. If the user is not authenticated, tell the user to run `gh auth login`, and stop.
+2. Set up the repository on first contact. Each act is a no-op when it is already done:
+   - no repository: `git init`; no git identity: ask the user for it, never invent one;
+   - no remote: `gh repo create <owner>/<repo> --private --source=. --remote=origin`;
+   - `.claude/settings.json` lacks `"worktree": {"baseRef": "head"}`: add it. Every worktree must start from the branch the session checks out, or stacking breaks.
+   - `.gitignore` lacks `.claude/worktrees/`: add it, so subagent worktrees never show as untracked files.
+
+   These changes ride the plan PR.
+3. Read the formats in `${CLAUDE_PLUGIN_ROOT}/skills/sprint-plan/formats/`. They say what each record holds, what earns a record, and how a record can change. They are the source of truth. If this skill and a format disagree, the format wins.
+4. Run `git fetch origin`. Read `.brief/brief.md`, the plans in `.sprint/`, and any record the request names.
+5. Settle the last sprint. Find the plan with `status: draft`.
+   - Its tickets are all closed (`gh issue list --label ticket --label v{N} --state open` is empty): the sprint landed. Close it in Write step 1.
+   - Some are open: the sprint is not finished. Tell the user which tickets are open and ask whether to finish it first (`/sprint-build` or `/sprint-refine`) or to abandon it. Abandon only when the user says so.
+   - A branch `docs/sprint-v{N}` exists with no merged PR: a plan was accepted but never landed. Resume from it.
+6. Find the starting point in the request.
+
+## Interview
+
+Interview the user until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
+
+Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the frontier in one round: number each question and give your recommended answer. If the frontier is long, ask the questions that unblock the most first, and keep the rest for the next round. Then wait for the user's answers.
+
+Format a round like so:
+
+```
+**Q1 — <question title>**: <question body, with the record quoted where one applies, including multiple choices>
+
+→ <your recommended answer>
 
 ---
 
-## 1.0 Sprint setup
+**Q2 — <question title>**: …
 
-**Goal:** ready the checkout, repo, and plan version.
-
-### 1.0.1 List existing context
-
-List what exists — **no reads**:
-
-- file artifacts — which of `.brief` / `.stories` / `.spec` / `.adr` / `.sprint` exist
-- repo — git (`.git` present)? remote?
-- → greenfield or existing project
-
-Existence only — content (versions, statuses, history) is read fresh by the step that needs it (`.sprint` statuses → 1.0.3).
-
-### 1.0.2 Prepare the repo
-
-Bootstrap on first contact — one homogeneous bundle (same kind of acts, each act visible), each a no-op when already done:
-
-- if no repo → `git init`
-- git identity if unset (one-time per machine): `git config user.name` / `git config user.email` empty → set them (ask the user; never invent)
-- if no remote → `gh repo create <owner>/<repo> --private --source=. --remote=origin` (provisional bootstrap)
-- if no `development` anywhere (greenfield) → **seed the trunk**:
-  ```bash
-  git checkout -b development
-  git commit --allow-empty -m "chore: seed development"
-  git push -u origin development
-  ```
-  Bootstrap scaffolding, exempt from the no-push doctrine (like `gh repo create` itself) — 1.0.4/1.0.5 need the trunk to exist.
-- protect `development` — **require linear history + block force pushes**, never "require a pull request" (Refine 5.2.2 pushes the trunk directly); applies once the trunk exists:
-  ```bash
-  echo '{"required_linear_history":true,"allow_force_pushes":false,"required_status_checks":null,"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null}' \
-    | gh api -X PUT "repos/{owner}/{repo}/branches/development/protection" --input -
-  ```
-  if it fails (plan limits on private repos, insufficient token scopes) → warn the user it must be set by hand, record nothing, continue — until then the flow's own discipline (no local trunk write except the FF land) is the only guard, surfaced, never silent
-- create missing folders — `.sprint` / `.adr` / `.stories`, + `.brief` when none exists
-
-### 1.0.3 Enforce the `.sprint` lifecycle
-
-Read the existing plans (`.sprint/sprint-v{N}.md` — `status` frontmatter), then decide, **in this order**:
-
-1. **A surviving draft** — a `draft` whose sprint is genuinely unfinished → **resume it**: keep its version number, no new version, no cascade — skip straight onward.
-2. **Explicit override only** — the user explicitly asks to drop a surviving draft → warn first, then flip it to `abandoned` and fall through to 3. Never abandon on your own initiative.
-3. **Otherwise** — set the next `v{N}`; **cascade** — archive everything older on the new draft; **backstop** — a previous draft whose PRs all landed but still reads `draft` is an irregular close (the flip normally rode its own sprint's spec-sweep commit, Refine 5.3.1) → forge-verify via `gh`: every PR with head `feat/sprint-v{M}` or `feat/sprint-v{M}-*` (divided chains) is closed *because landed* — its commits reachable from `origin/development`; an abandoned PR also reads closed and doesn't count → flip `draft → built` here.
-
-Hold the one-draft rule — at most one `status: draft` in `.sprint/` at any time. Status edits are **annotations, not changes** — they ride 1.3.2's `docs(plan)` bundle, never their own commit. Decide the flips here; **1.0.5's tail applies them** after the branch is cut, so the edits are made on the sprint branch they belong to.
-
-### 1.0.4 Fetch the trunk
-
-`git fetch origin development` — refresh the trunk ref; no checkout. if no origin → skip.
-
-### 1.0.5 Cut the sprint branch
-
-Cut the branch off the fetched trunk, before any authoring:
-
-```bash
-git checkout -b feat/sprint-v{N} origin/development
+→ …
 ```
 
-Ungated (the gate is plan approval, 1.3.1), **local-only** — deterministic name, no remote ref until publication (Build 3.4.1). if no origin → `git checkout -b feat/sprint-v{N} development` (the local trunk seeded at 1.0.2). if `git status --porcelain` shows uncommitted state this session did not create → surface it to the user before switching — never blind-switch over another session's work (your own in-flight draft edits ride the checkout; that is the resume case, fine).
+Each round the user answers reshapes the tree. Recompute the frontier and ask the next round. A question whose answer depends on another open question in this round belongs to a later round.
 
-**Resume** (a surviving draft, 1.0.3): the branch `feat/sprint-v{N}` already exists → `git checkout feat/sprint-v{N}` — never cut a second branch for the same sprint. A draft written but never committed (the session died between 1.2.6 and 1.3.2) simply rides the working tree into this checkout; 1.3.2 commits it as the one `docs(plan)`.
+Finding _facts_ is your job, never the user's. Facts live in the records, the formats, the code, the issue tracker and sources outside the repository. When a frontier question needs a fact that a few reads find, read it yourself. For a wide search, send a subagent (see Subagents), and ask the rest of the frontier while it runs: only the questions downstream of it wait. The _decisions_ are the user's: put each to them and wait.
 
-Tail — after the cut (whichever branch above ran): **write the status flips 1.0.3 decided** (cascade archives · backstop `built` · any `abandoned`) — applied here, on the sprint branch, so they ride 1.3.2's `docs(plan)` bundle.
+The records run from broad to narrow: brief, stories, decisions, sprint plan. Settle the broad questions first.
 
----
+Guide the user like a colleague who knows the history. Explain why a question matters when it is not obvious. Never grade the answers. If a session runs very long, the scope is usually too big: split it into sprints.
 
-## 1.1 Discovery
+## During the session
 
-**Goal:** understand the intent and map the touched code.
+### Show the records
 
-### 1.1.1 Discuss with user
+Users do not read the record files. Quote a record exactly, with its ID, every time a question or a warning rests on it. Never refer to a record by a bare ID: the ID rides inside the quote. Quote only the part that matters.
 
-Open context-aware — three openings, same interview style for all:
+Put the record inside the question, so that the user can only answer with it: "ADR-002 says: *once the buyer assigns a replacement, the previous occupant does not return to that seat.* Your idea lets her take the seat back. Which one wins?"
 
-1. greenfield project — what are we building, from zero?
-2. brownfield project — first contact with an existing codebase
-3. new sprint — artifacts exist; what's this sprint for?
+### Sharpen the language
 
-Then intent-driven — ask the intent, infer + confirm the rest (not a questionnaire):
+When the user uses a term that conflicts with the brief's user roles or the words the stories use, call it out at once. When a term is vague or overloaded, propose a precise one: "You're saying 'account': do you mean the Customer or the User?"
 
-1. **Intent** — what's this sprint for?
-2. → `.stories` or architecture — user-facing want vs technical work
-3. → `.adr` — decisions the approach forces
-4. → `.brief` check — still fits north-star / non-goals? (mostly silent)
+### Stress-test with scenarios
 
-Interview style: one question at a time, each with a recommended answer; explore the codebase instead of asking where it can answer (quick inline lookups to steer the conversation — the big sweep is 1.1.2); challenge + sharpen the user's terms.
+When a domain relationship is under discussion, invent concrete scenarios that probe its edges, and make the user decide them.
 
-### 1.1.2 Codebase exploration
+### Cross-reference
 
-Once the intent is clear, the big sweep: dispatch `codebase-explorer` agents (parallel, `codebase-explorer-prompt`) to map only the touched modules — grounds the discussed intent in the actual code. *Direction from the session, discretion to the agent*: seed each with what the session already holds — the discussed intent, the modules to map, the `.spec` slice if present — then latitude: each expands its exploration to what its task needs, no rigid procedure.
+When the user states how something works, check whether the code agrees, and surface a contradiction: "Your code cancels entire orders, but you just said partial cancellation is possible. Which is right?"
 
-if `.spec` exists → explorers read its slice first — the spec scopes + frames the sweep, the code carries the detail. if greenfield (no code yet) → skip.
+When you draft a record, new or changed, send `docs-explorer` with the draft to find every record it relates to. For each one it reports, ask whether the draft fits it, and propose any change in the form its format's Mutability section allows.
 
-### 1.1.3 Gate — confirm discovery
+### Draft records as they are resolved
 
-Present the discovery summary — sized to the sprint, no fixed length: the intent as understood, the touched-code map, anything 1.1.1 sharpened. The user confirms it captures their intent → proceed to Author; corrections → incorporate, re-present.
+When a story or a decision is resolved, draft it there and then, in its format, in the conversation. Don't batch them up. Drafts live in the conversation until Write. If the session ends before that, nothing is written.
 
----
+### Find the home of every answer
 
-## 1.2 Author
+Go from broad to narrow, and stop at every level the answer touches:
 
-**Goal:** decide the approach, then write the sprint's artifacts.
+1. Does it change the product's pitch, its roles, its quality bars or its Definition of Done? That is the brief. Say so and ask the user.
+2. Is it a want? Test it against the gate in `stories-format`.
+3. Is it a decision? Test it against the gate in `adr-format`.
+4. Is it the sprint's goal, scope, or how the work splits into epics? That is the sprint plan.
+5. Is it detail for the build? It goes in the plan's scope or architecture, so the architects can design from it.
+6. None of these? It stays in the conversation.
 
-### 1.2.1 Create / edit `.brief`
+Most gate conditions ask for judgement. If one fails, say so once, say what it costs later, and recommend a fix. If the user overrides, draft what the user asked for and do not repeat the warning. Two conditions have no override: every story names a role from the brief, and every `Related to` ID resolves.
 
-if no `.brief` yet (greenfield, or brownfield first contact) → write the founding `.brief` per `brief-format` — the charter + the DoD home. Otherwise edit **only** when Discovery's `.brief`-check (1.1.1) surfaced a project-level discrepancy or add-on — scarce by design, the slowest-changing artifact.
+### Warn by cost
 
-### 1.2.2 Create / edit `.stories`
+An edit in place gets a note. A record that must be replaced gets a clear warning, with what else it touches. The strongest warning is for a plan that breaks a decision or covers something no story asks for: quote the record and say what the build will then do against it. The user can override every warning.
 
-Add/edit `US-###` per `stories-format`. if a new want conflicts with an existing story → resolve it and route the WHY to `.adr` (1.2.4) — the decision log holds the reasoning, not the stories file.
+## Plan
 
-### 1.2.3 Discuss the architecture
+When the user confirms a shared understanding, write the sprint plan per `sprint-format`, in the conversation.
 
-Discuss the approach with the user — how the sprint fits the existing architecture, what's new, which patterns hold, what the alternatives are. Let the discussion run naturally; note decisions as they emerge — formal capture is 1.2.4, don't interrupt the flow with paperwork.
+1. **Explore once.** Send one `codebase-explorer` per epic you expect, in one message, for the facts the plan's scope and architecture rest on. Draft from the reports.
+2. **Draft.** Goal, solution, stories, epics and scope. Every story slice and every scope row sits under one epic.
+3. **Make it runnable without a person.** `/sprint-tickets` reads this plan alone. Check that no question is left open in it: no "or", "TBD" or "depending on", and no choice an architect would have to make that the user has not made. If one is left, ask it as a round.
+4. **Show everything once.** Check first that every draft passes its gate or was overridden, and that every new or changed record serves the plan. Then show every new record in full, every changed record with the old text next to the new, and the plan. Ask the user to accept. If the user changes something, go back, then show everything again. Write nothing before the user accepts.
 
-### 1.2.4 Capture `.adr`
+## Write
 
-Capture the decisions in `.adr` per `adr-format` — **append-only**: never edit or delete an existing record. The bar is **judgment**, guided by Pocock's three tests — hard to reverse · surprising without context · a real trade-off — not a hard all-three checklist; when in doubt, the reasoning can stay in the plan. Check each new decision once against `.brief` principles (north-star / non-goals): deviation → flag to the user, never block. Downstream trusts the record (*trust the artifact*) — write it to be consumed.
+1. If the last sprint landed (Start step 5), close it first. Check out `origin/main` detached, check that the tree is clean, and send `spec-writer` with its filled prompt: `create` mode when `.spec/spec.md` does not exist, else `update` mode, with the diff from the last plan's commit (`git log origin/main --grep "docs(plan): sprint-v{N-1}" -1`) to `origin/main`. Keep its worktree until step 3.
+2. Cut `docs/sprint-v{N}` from `origin/main`. If the checkout has uncommitted work, use a temporary worktree.
+3. If step 1 ran: copy `.spec/spec.md` from the spec-writer's worktree into the branch, set the last plan's status to `built`, and commit both per `commit-format`, as `docs(spec): sprint-v{N-1}`. Remove the spec-writer's worktree.
+4. Write the records and the plan. Set every older plan that is not `archived` or `abandoned` to `archived`. Commit per `commit-format`, as `docs(plan): sprint-v{N}`.
+5. Push the branch and open a PR per `pr-format`. If you used a temporary worktree, remove it.
+6. Merge the PR by its number: `gh pr merge <N> --rebase --delete-branch`. The user accepted the records in Plan step 4; that is the review.
 
-### 1.2.5 Gate — approve `.adr`
+## Stop
 
-The user confirms the written records say what 1.2.3 decided — **capture fidelity, not re-deciding**; mismatch → fix in 1.2.4, re-present. The commit gate stays 1.3.1.
+Show what you wrote, with the IDs and the PR link. Name `/sprint-tickets` as the next step, in a fresh session: the plan carries everything it needs. Never write tickets, never build.
 
-### 1.2.6 Write the `.sprint` plan
+## Subagents
 
-Write `.sprint/sprint-v{N}.md` per `sprint-format` — the sprint's single pass/fail **Goal** + scope + epics + the `US-###` slice + success metric + DoD-ref; `status: draft`. This is the exact contract Tickets 2.0.2 reads. References, never copies — the `US-###` slice points at `.stories`, the DoD-ref at `.brief`.
+| Agent | Prompt | Use it for |
+|---|---|---|
+| `codebase-explorer` | `${CLAUDE_PLUGIN_ROOT}/skills/sprint-plan/prompts/codebase-explorer-prompt.md` | facts in the code |
+| `docs-explorer` | `${CLAUDE_PLUGIN_ROOT}/skills/sprint-plan/prompts/docs-explorer-prompt.md` | the records related to a draft or a subject |
+| `web-researcher` | `${CLAUDE_PLUGIN_ROOT}/skills/sprint-plan/prompts/web-researcher-prompt.md` | facts from outside the repository |
+| `spec-writer` | `${CLAUDE_PLUGIN_ROOT}/skills/sprint-plan/prompts/spec-writer-prompt.md` | bringing `.spec/spec.md` up to date with the last sprint |
 
----
+Use only the agents in this table.
 
-## 1.3 Phase close
+Read the agent's prompt, fill its slots, and send the filled prompt as the `prompt` of the Agent call. It is the whole task: the subagent sees nothing of this conversation. Never pass `name` on the Agent call: a named subagent can run as a teammate in the main checkout.
 
-**Goal:** persist the work + hand off.
-
-### 1.3.1 Gate — approve the `.sprint` plan
-
-The user accepts the sprint — approves the plan's **Goal + scope**. The gate sits on content acceptance, never on a vcs op: once accepted, 1.3.2 runs autonomously — no "shall I commit?" follow-up. Edits → incorporate, re-present.
-
-### 1.3.2 Finish documentation artifacts
-
-Author **one** atomic commit of the documentation artifacts.
-
-- **Greenfield first** — the founding charter is its own change, committed before the plan bundle, the trailer inside the quoted message (the audit contract holds from the branch's first commit):
-  ```bash
-  git add .brief
-  git commit -m "docs(brief): <project> founding charter
-
-  Assisted-by: session <model>"
-  ```
-- **The bundle** — the `.sprint` plan + any `.stories`/`.adr` edits + the 1.0.3 lifecycle flips: one logical change — *plan the sprint*, portfolio management included:
-  ```bash
-  git add .sprint .stories .adr
-  git commit -m "docs(plan): sprint-v{N}
-
-  Story: US-0XX, US-0YY
-  ADR: ADR-0ZZ
-  Assisted-by: session <model>"
-  ```
-  Message shape per `commit-format`. Trailers carry the captured `Story:`/`ADR:` pointers by ID (never a copy) plus `Assisted-by:` authored explicitly. `docs(plan)`/`docs(brief)` are **session-authored** (no dispatched writer), so the role token is **`session`** and `<model>` is the session's own runtime model id — never config-appended.
-
-Follows the 1.3.1 acceptance — the gate approved the content; the commit is autonomous.
-
-- **Resume tail** — if resuming (1.0.5) and a `docs(plan)` v{N} commit already sits on this branch → **never author a second one**: stage the new edits and amend it, re-stating the updated trailers (`git add … && git commit --amend`) — safe because nothing is pushed until Build-close (3.4.1); the one-`docs(plan)`-per-sprint principle holds across resumes.
-
-### 1.3.3 No push (local until Build-close)
-
-Plan finishes locally only — **no push**. Durability is local (the commits carry it), and the branch has no remote ref yet — publication is Build-close (3.4.1).
-
-### 1.3.4 Handoff
-
-Summarise what was captured: the plan's Goal + version, `.stories` touched (IDs + one-liners), ADRs (titles), the Brief if founded, and where the branch sits (`git log --oneline origin/development..HEAD` inline is fine). Recommend running `/sprint-tickets` in a **fresh session** — clean context; the artifacts carry the intent (*phases don't share a session — artifacts are the bridge*). This phase ends here — never start ticketing.
-
----
-
-## Key principles
-
-- **Gates sit on content, ops run autonomously** — three gates, zero op confirmations.
-- **The branch is private clay, local** — no remote ref, no push, until Build publishes it.
-- **One `docs(plan)` commit** — lifecycle flips are annotations riding it; greenfield's `docs(brief)` commits first.
-- **Quality is owned at creation** — downstream consumes these artifacts as-given, in a fresh session; write them for a context-less reader, each fact in one place, referenced not restated.
-- **Thin orchestration** — explorers own the exploration, the user owns the decisions; the session steers, gates, and commits.
+A report is facts. The decisions stay with the user.
